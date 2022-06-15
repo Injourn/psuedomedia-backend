@@ -7,7 +7,6 @@ namespace PsuedoMediaBackend.Models {
         [BsonRepresentation(MongoDB.Bson.BsonType.ObjectId)]
         public string? AttachmentTypeId { get; set; }
 
-        [BsonId]
         [BsonRepresentation(MongoDB.Bson.BsonType.ObjectId)]
         public string? PostId { get; set; }
 
