@@ -1,43 +1,40 @@
-﻿using PsuedoMediaBackend.Models;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Primitives;
+using PsuedoMediaBackend.Models;
 using PsuedoMediaBackend.Services;
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
-using System.Security.Principal;
-using System.Text;
 using System.Web.Http.Filters;
+using System.Web.Http.Results;
 
 namespace PsuedoMediaBackend.Filters {
-    public class PsuedoMediaAuthentication : Attribute, IAuthenticationFilter {
+    public class PsuedoMediaAuthentication : Attribute, IAsyncAuthorizationFilter {
         public bool AllowMultiple => false;
-        readonly AuthenticationService _authenticationService;        
+        AuthenticationService _authenticationService;        
 
-        public PsuedoMediaAuthentication(AuthenticationService authenticationService) {
-            _authenticationService = authenticationService;
-        }
-
-        public async Task AuthenticateAsync(HttpAuthenticationContext context, CancellationToken cancellationToken) {
-            HttpRequestMessage request = context.Request;
-            AuthenticationHeaderValue authorization = request.Headers.Authorization;
-
-            if (authorization == null) {
-                context.ErrorResult = new AuthenticationFailureResult("Bad Request", request);
+        public async Task OnAuthorizationAsync(AuthorizationFilterContext context) {
+            HttpRequest request = context.HttpContext.Request;
+            AuthenticationHeaderValue authorization;
+            if (!AuthenticationHeaderValue.TryParse(request.Headers.Authorization, out authorization)) {
+                context.Result = new UnauthorizedObjectResult("Bad Request");
                 return;
             }
 
             if (authorization.Scheme != "Bearer") {
-                context.ErrorResult = new AuthenticationFailureResult("Bad Request", request);
+                context.Result = new UnauthorizedObjectResult("Bad Request");
                 return;
             }
 
-            string? authToken = request.Headers.GetValues("pm-authToken").FirstOrDefault();
-            string? refreshToken = request.Headers.GetValues("pm-refreshToken").FirstOrDefault();
+            _authenticationService = request.HttpContext.RequestServices.GetService<AuthenticationService>();                        
+
+            string? authToken = authorization.Parameter;
+            request.Headers.TryGetValue("pm-refreshToken", out StringValues refreshTokenString);
+            string? refreshToken = refreshTokenString; 
             
             if(!await AuthenticateAsync(authToken, refreshToken)) {
-                context.ErrorResult = new AuthenticationFailureResult("Invalid Login", request);
+                context.Result = new UnauthorizedObjectResult("Invalid Login");
+                return;
             }
-        }
-
-        public async Task ChallengeAsync(HttpAuthenticationChallengeContext context, CancellationToken cancellationToken) {
         }
 
         private async Task<bool> AuthenticateAsync(string? authToken,string? refreshToken) {
