@@ -38,12 +38,15 @@ namespace PsuedoMediaBackend.Filters {
         }
 
         private async Task<bool> AuthenticateAsync(string? authToken,string? refreshToken) {
-            if (authToken == null || refreshToken == null) {
+            if (authToken == null) {
                 return false;
             }
             //TODO: Add jwt expiration and userId
             OAuthToken? foundToken = (await _authenticationService.OAuthService.GetAllByDefinition(x => x.Token == authToken)).FirstOrDefault();
             if (foundToken == null) {
+                if(refreshToken == null) {
+                    return false;
+                }
                 RefreshToken? foundRefreshToken = (await _authenticationService.RefreshTokenService.GetAllByDefinition(x => x.Token == refreshToken && x.RemoveDate < DateTime.Now)).FirstOrDefault();
                 if (foundRefreshToken == null) {
                     return false;
