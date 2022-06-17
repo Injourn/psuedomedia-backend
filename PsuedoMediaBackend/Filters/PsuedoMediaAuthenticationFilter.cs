@@ -42,7 +42,7 @@ namespace PsuedoMediaBackend.Filters {
                 return false;
             }
             //TODO: Add jwt expiration and userId
-            OAuthToken? foundToken = (await _authenticationService.OAuthService.GetAllByDefinition(x => x.Token == authToken && x.RemoveDate < DateTime.Now)).FirstOrDefault();
+            OAuthToken? foundToken = (await _authenticationService.OAuthService.GetAllByDefinition(x => x.Token == authToken)).FirstOrDefault();
             if (foundToken == null) {
                 RefreshToken? foundRefreshToken = (await _authenticationService.RefreshTokenService.GetAllByDefinition(x => x.Token == refreshToken && x.RemoveDate < DateTime.Now)).FirstOrDefault();
                 if (foundRefreshToken == null) {
@@ -54,7 +54,8 @@ namespace PsuedoMediaBackend.Filters {
                 }
             }
             else {
-                _authenticationService.ActiveUserId = foundToken.UserId;
+                Users user = _authenticationService.DecodeJwtToken(foundToken.Token);
+                _authenticationService.ActiveUserId = user.Id;
             }
             return true;
         }

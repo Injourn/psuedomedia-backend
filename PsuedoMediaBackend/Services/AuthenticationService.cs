@@ -40,15 +40,8 @@ namespace PsuedoMediaBackend.Services {
 
         public async Task RefreshToken(RefreshToken refreshToken) {
             Users users = await UserService.GetByIdAsync(refreshToken.UserId);
-            OAuthToken newToken = new OAuthToken() {
-                Token = GenerateJwtToken(users),
-                UserId = refreshToken.UserId
-            };
-            RefreshToken newRefreshToken = new RefreshToken() {
-                UserId = refreshToken.UserId,
-                Token = GenerateRandomString(32),
-                IsInactive = false
-            };
+            OAuthToken newToken = GenerateOAuthToken(users);
+            RefreshToken newRefreshToken = GenerateRefreshToken(users);
             refreshToken.IsInactive = true;
             await RefreshTokenService.CreateAsync(newRefreshToken);
             await OAuthService.CreateAsync(newToken);
@@ -63,7 +56,6 @@ namespace PsuedoMediaBackend.Services {
         public OAuthToken GenerateOAuthToken(Users user) {
             return new OAuthToken() {
                 Token = GenerateJwtToken(user),
-                UserId = user.Id
             };
         }
 
@@ -72,6 +64,15 @@ namespace PsuedoMediaBackend.Services {
                 Token = GenerateRandomString(32),
                 UserId = user.Id,
                 IsInactive = false
+            };
+        }
+
+        public Users DecodeJwtToken(string token) {
+            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
+            JwtSecurityToken jsonToken = tokenHandler.ReadJwtToken(token);
+            return new Users() {
+                Id = jsonToken.Claims.First(x => x.Type == "id").Value,
+                DisplayName = jsonToken.Claims.First(x => x.Type == "username").Value
             };
         }
 
