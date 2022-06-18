@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using PsuedoMediaBackend.Models;
 using PsuedoMediaBackend.Models.ProtocolMessages;
@@ -19,10 +20,10 @@ namespace PsuedoMediaBackend.Services {
 
         public string? ActiveUserId { get; set; }
 
-        public AuthenticationService() {
-            OAuthService = new MongoDbService<OAuthToken>();
-            RefreshTokenService = new MongoDbService<RefreshToken>();
-            UserService = new MongoDbService<Users>();
+        public AuthenticationService(IOptions<PsuedoMediaDatabaseSettings> psuedoMediaDatabaseSettings) {
+            OAuthService = new MongoDbService<OAuthToken>(psuedoMediaDatabaseSettings);
+            RefreshTokenService = new MongoDbService<RefreshToken>(psuedoMediaDatabaseSettings);
+            UserService = new MongoDbService<Users>(psuedoMediaDatabaseSettings);
         }
 
         public async Task<LoginResponseModel> AddTokens(Users user) {

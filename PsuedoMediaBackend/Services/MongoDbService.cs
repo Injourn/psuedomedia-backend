@@ -1,4 +1,5 @@
-﻿using MongoDB.Driver;
+﻿using Microsoft.Extensions.Options;
+using MongoDB.Driver;
 using PsuedoMediaBackend.Models;
 
 namespace PsuedoMediaBackend.Services {
@@ -6,21 +7,25 @@ namespace PsuedoMediaBackend.Services {
         readonly IMongoCollection<T> _mongoCollection;
         public string? UserId { get; set; }
 
-        public MongoDbService() {
-            MongoClient mongoClient = new MongoClient("DataBaseConnectString");
-            IMongoDatabase mongoDatabase = mongoClient.GetDatabase("DataBaseName");
+        public MongoDbService(IOptions<PsuedoMediaDatabaseSettings> psuedoMediaDatabaseSettings) {
+            //Using local database for testing purposes
+            MongoClient mongoClient = new MongoClient(psuedoMediaDatabaseSettings.Value.ConnectionString);
+            IMongoDatabase mongoDatabase = mongoClient.GetDatabase(psuedoMediaDatabaseSettings.Value.DatabaseName);
 
-            _mongoCollection = mongoDatabase.GetCollection<T>(nameof(T).ToLower());
+            _mongoCollection = mongoDatabase.GetCollection<T>(typeof(T).Name.ToLower());
         }
 
-        public async Task<List<T>> GetAllAsync() =>
-            await _mongoCollection.Find(_ => true).ToListAsync();
+        public async Task<List<T>> GetAllAsync(int offset = 0) =>
+            await _mongoCollection.Find(_ => true).Limit(10).Skip(0).ToListAsync();
 
         public async Task<T> GetByIdAsync(string id) =>
             await _mongoCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
 
-        public async Task<List<T>> GetAllByDefinition(System.Linq.Expressions.Expression<Func<T,bool>> filter) =>
-            await _mongoCollection.Find(filter).ToListAsync();
+        public async Task<T> GetOneByDefinition(System.Linq.Expressions.Expression<Func<T, bool>> filter) =>
+            await _mongoCollection.Find(filter).FirstOrDefaultAsync();
+
+        public async Task<List<T>> GetAllByDefinition(System.Linq.Expressions.Expression<Func<T,bool>> filter,int offset = 0) =>
+            await _mongoCollection.Find(filter).Limit(10).Skip(offset).ToListAsync();
 
         public async Task CreateAsync(T dataBaseItem) {
             if(dataBaseItem == null) {
@@ -35,6 +40,7 @@ namespace PsuedoMediaBackend.Services {
                 FadingEntity fadingEntity = dataBaseItem as FadingEntity;
                 fadingEntity.RemoveDate = DateTime.Now.AddDays(7);
             }
+            
 
             await _mongoCollection.InsertOneAsync(dataBaseItem);
         }

@@ -11,16 +11,14 @@ namespace PsuedoMediaBackend.Controllers {
     public class AccountController : ControllerBase {
 
         readonly AuthenticationService _authenticationService;
-        readonly MongoDbService<FriendsFollowers> _friendsFollowersService;
-        readonly MongoDbService<RelationshipType> _relationshipTypeService;
+        readonly AccountService _accountService;
 
-        public AccountController(AuthenticationService authenticationService) {
+        public AccountController(AuthenticationService authenticationService, AccountService accountService) {
             _authenticationService = authenticationService;
-            _friendsFollowersService = new MongoDbService<FriendsFollowers>();
-            _relationshipTypeService = new MongoDbService<RelationshipType>();
+            _accountService = accountService;
         }
 
-        [HttpGet("{id:length(24)}"), PsuedoMediaAuthentication, AllowAnonymous]
+        [HttpGet("getAccountInfo/{id:length(24)}"), PsuedoMediaAuthentication, AllowAnonymous]
         public async Task<AccountResponseProtocolMessage> GetAccountInfo(string? id) {
             if(_authenticationService.ActiveUserId == null) {
                 return new AccountResponseProtocolMessage() {
@@ -30,8 +28,8 @@ namespace PsuedoMediaBackend.Controllers {
 
             AccountResponseProtocolMessage response = new AccountResponseProtocolMessage();
 
-            FriendsFollowers? FromRelationship = (await _friendsFollowersService.GetAllByDefinition(x => (x.UserAId == id && x.UserBId == _authenticationService.ActiveUserId))).FirstOrDefault();
-            FriendsFollowers? ToRelationship = (await _friendsFollowersService.GetAllByDefinition(x => (x.UserAId == _authenticationService.ActiveUserId && x.UserBId == id))).FirstOrDefault();
+            FriendsFollowers? FromRelationship = (await _accountService.FriendsFollowersService.GetAllByDefinition(x => (x.UserAId == id && x.UserBId == _authenticationService.ActiveUserId))).FirstOrDefault();
+            FriendsFollowers? ToRelationship = (await _accountService.FriendsFollowersService.GetAllByDefinition(x => (x.UserAId == _authenticationService.ActiveUserId && x.UserBId == id))).FirstOrDefault();
 
             if (FromRelationship != null) {
                 response.IsRelated = true;
@@ -47,7 +45,7 @@ namespace PsuedoMediaBackend.Controllers {
 
         }
 
-        [HttpPost]
+        [HttpPost, Route("createAccount")]
         public async Task<ActionResult> CreateAccount(AccountProtocolMessage postAccountProtocolMessage) {
             Users user = new Users() {
                 Username = postAccountProtocolMessage.Username,
@@ -58,7 +56,7 @@ namespace PsuedoMediaBackend.Controllers {
             return NoContent();
         }
 
-        [HttpPut]
+        [HttpPut, Route("editAccount")]
         [PsuedoMediaAuthentication]
         public async Task<ActionResult> EditAccount(AccountProtocolMessage postAccountProtocolMessage) {
             Users existingUser = await _authenticationService.UserService.GetByIdAsync(_authenticationService.ActiveUserId);
@@ -71,16 +69,16 @@ namespace PsuedoMediaBackend.Controllers {
             return NoContent();
         }
 
-        [HttpDelete]
+        [HttpDelete, Route("deleteAccount")]
         [PsuedoMediaAuthentication]
         public async Task<ActionResult> DeleteAccount() {
             await _authenticationService.UserService.DeleteAsync(_authenticationService.ActiveUserId);
             return Ok();
         }
 
-        [HttpPost, PsuedoMediaAuthentication]
+        [HttpPost, PsuedoMediaAuthentication, Route("addFriend")]
         public async Task<ActionResult> AddFriend(RelationshipProtocolMessage relationshipProtocolMessage) {
-            string? friendTypeId = (await _relationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FRIEND.ToString())).First().Id;
+            string? friendTypeId = (await _accountService.RelationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FRIEND.ToString())).First().Id;
             Users? otherUser = await _authenticationService.UserService.GetByIdAsync(relationshipProtocolMessage.RelatedUserId);
             if(otherUser == null) {
                 return BadRequest("Other user does not exist");
@@ -90,30 +88,30 @@ namespace PsuedoMediaBackend.Controllers {
                 UserBId = otherUser.Id,
                 RelationShipTypeId = friendTypeId
             };
-            await _friendsFollowersService.CreateAsync(friendsFollowers);
+            await _accountService.FriendsFollowersService.CreateAsync(friendsFollowers);
             return Ok();
         }
 
-        [HttpDelete, PsuedoMediaAuthentication]
+        [HttpDelete, PsuedoMediaAuthentication, Route("removeFriend")]
         public async Task<ActionResult> RemoveFriend(RelationshipProtocolMessage relationshipProtocolMessage) {
-            string? friendTypeId = (await _relationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FRIEND.ToString())).First().Id;
+            string? friendTypeId = (await _accountService.RelationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FRIEND.ToString())).First().Id;
             Users? otherUser = await _authenticationService.UserService.GetByIdAsync(relationshipProtocolMessage.RelatedUserId);
             if (otherUser == null) {
                 return BadRequest("Other user does not exist");
             }
-            FriendsFollowers? friendsFollowers = await _friendsFollowersService.GetOneByDefinition(x => x.UserAId == _authenticationService.ActiveUserId 
+            FriendsFollowers? friendsFollowers = await _accountService.FriendsFollowersService.GetOneByDefinition(x => x.UserAId == _authenticationService.ActiveUserId 
                 && x.UserBId == relationshipProtocolMessage.RelatedUserId 
                 && x.RelationShipTypeId == friendTypeId);
             if(friendsFollowers == null) {
                 return StatusCode(500);
             }
-            _friendsFollowersService.DeleteAsync(friendsFollowers.Id);
+            _accountService.FriendsFollowersService.DeleteAsync(friendsFollowers.Id);
             return Ok();
         }
 
-        [HttpPost, PsuedoMediaAuthentication]
+        [HttpPost, PsuedoMediaAuthentication, Route("follow")]
         public async Task<ActionResult> Follow(RelationshipProtocolMessage relationshipProtocolMessage) {
-            string? followTypeId = (await _relationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FOLLOW.ToString())).First().Id;
+            string? followTypeId = (await _accountService.RelationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FOLLOW.ToString())).First().Id;
             Users? otherUser = await _authenticationService.UserService.GetByIdAsync(relationshipProtocolMessage.RelatedUserId);
             if (otherUser == null) {
                 return BadRequest("Other user does not exist");
@@ -123,31 +121,31 @@ namespace PsuedoMediaBackend.Controllers {
                 UserBId = otherUser.Id,
                 RelationShipTypeId = followTypeId
             };
-            await _friendsFollowersService.CreateAsync(friendsFollowers);
+            await _accountService.FriendsFollowersService.CreateAsync(friendsFollowers);
             return Ok();
         }
 
-        [HttpDelete, PsuedoMediaAuthentication]
+        [HttpDelete, PsuedoMediaAuthentication, Route("unFollow")]
         public async Task<ActionResult> UnFollow(RelationshipProtocolMessage relationshipProtocolMessage) {
-            string? followTypeId = (await _relationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FOLLOW.ToString())).First().Id;
+            string? followTypeId = (await _accountService.RelationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FOLLOW.ToString())).First().Id;
             Users? otherUser = await _authenticationService.UserService.GetByIdAsync(relationshipProtocolMessage.RelatedUserId);
             if (otherUser == null) {
                 return BadRequest("Other user does not exist");
             }
-            FriendsFollowers? friendsFollowers = await _friendsFollowersService.GetOneByDefinition(x => x.UserAId == _authenticationService.ActiveUserId
+            FriendsFollowers? friendsFollowers = await _accountService.FriendsFollowersService.GetOneByDefinition(x => x.UserAId == _authenticationService.ActiveUserId
                 && x.UserBId == relationshipProtocolMessage.RelatedUserId
                 && x.RelationShipTypeId == followTypeId);
             if (friendsFollowers == null) {
                 return StatusCode(500);
             }
-            _friendsFollowersService.DeleteAsync(friendsFollowers.Id);
+            _accountService.FriendsFollowersService.DeleteAsync(friendsFollowers.Id);
             return Ok();
         }
 
         private async Task<RelationshipTypeEnum> RelationshipType(FriendsFollowers friendsFollowers) {
-            string? friendTypeId = (await _relationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FRIEND.ToString())).First().Id;
-            string? followTypeId = (await _relationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FOLLOW.ToString())).First().Id;
-            string? blockTypeId = (await _relationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.BLOCK.ToString())).First().Id;
+            string? friendTypeId = (await _accountService.RelationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FRIEND.ToString())).First().Id;
+            string? followTypeId = (await _accountService.RelationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FOLLOW.ToString())).First().Id;
+            string? blockTypeId = (await _accountService.RelationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.BLOCK.ToString())).First().Id;
 
             if(friendsFollowers.RelationShipTypeId == friendTypeId) {
                 return RelationshipTypeEnum.FRIEND;

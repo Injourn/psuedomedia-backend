@@ -9,26 +9,24 @@ namespace PsuedoMediaBackend.Controllers {
     [Route("[controller]")]
     public class FeedController : ControllerBase {
 
-        readonly MongoDbService<Post> _postService;
-        readonly MongoDbService<PostType> _postTypeService;
+        readonly PostsService _postsService;
         readonly AuthenticationService _authenticationService;
 
-        public FeedController(AuthenticationService authenticationService) {
-            _postService = new MongoDbService<Post>();
-            _postTypeService = new MongoDbService<PostType>();
+        public FeedController(AuthenticationService authenticationService, PostsService postsService) {            
             _authenticationService = authenticationService;
-            _postService.UserId = _authenticationService.ActiveUserId;
+            _postsService = postsService;
+            _postsService.PostService.UserId = _authenticationService.ActiveUserId;
         }
 
         [HttpGet]
         public async Task<List<PostProtocolMessage>> Get() {
-            List<PostProtocolMessage> posts = (await _postService.GetAllAsync()).Select(x => PostToProtocolMessage(x).Result).ToList();
+            List<PostProtocolMessage> posts = (await _postsService.PostService.GetAllAsync()).Select(x => PostToProtocolMessage(x).Result).ToList();
             return posts;
         }
 
         [HttpGet("{id:length(24)}")]
         public async Task<ActionResult<Post>> Get(string id) {
-            var post = await _postService.GetByIdAsync(id);
+            var post = await _postsService.PostService.GetByIdAsync(id);
 
             if (post is null) {
                 return NotFound();
@@ -42,10 +40,10 @@ namespace PsuedoMediaBackend.Controllers {
         public async Task<IActionResult> Post(RequestPostProtocolMessage newPost) {
             Post post = new Post() {
                 PostText = newPost.PostText,
-                PostTypeId = (await _postTypeService.GetAllByDefinition(x => x.Code == newPost.PostTypeCode.ToString())).FirstOrDefault()?.Id,
+                PostTypeId = (await _postsService.PostTypeService.GetAllByDefinition(x => x.Code == newPost.PostTypeCode.ToString())).FirstOrDefault()?.Id,
                 ParentPostId = newPost.ParentPostId,
             };
-            await _postService.CreateAsync(post);
+            await _postsService.PostService.CreateAsync(post);
 
             return Accepted();
         }
@@ -53,10 +51,10 @@ namespace PsuedoMediaBackend.Controllers {
         [HttpPut("{id:length(24)}")]
         [PsuedoMediaAuthentication]
         public async Task<IActionResult> Update(string id, RequestPostProtocolMessage updatedPost) {
-            var post = await _postService.GetByIdAsync(id);
+            var post = await _postsService.PostService.GetByIdAsync(id);
             Post newPost = new Post() {
                 PostText = updatedPost.PostText,
-                PostTypeId = (await _postTypeService.GetAllByDefinition(x => x.Code == updatedPost.PostTypeCode.ToString())).FirstOrDefault()?.Id,
+                PostTypeId = (await _postsService.PostTypeService.GetAllByDefinition(x => x.Code == updatedPost.PostTypeCode.ToString())).FirstOrDefault()?.Id,
                 ParentPostId = updatedPost.ParentPostId,
             };
 
@@ -66,7 +64,7 @@ namespace PsuedoMediaBackend.Controllers {
 
             newPost.Id = post.Id;
 
-            await _postService.UpdateAsync(id, newPost);
+            await _postsService.PostService.UpdateAsync(id, newPost);
 
             return NoContent();
         }
@@ -74,13 +72,13 @@ namespace PsuedoMediaBackend.Controllers {
         [HttpDelete("{id:length(24)}")]
         [PsuedoMediaAuthentication]
         public async Task<IActionResult> Delete(string id) {
-            var book = await _postService.GetByIdAsync(id);
+            var book = await _postsService.PostService.GetByIdAsync(id);
 
             if (book is null) {
                 return NotFound();
             }
 
-            await _postService.DeleteAsync(id);
+            await _postsService.PostService.DeleteAsync(id);
 
             return NoContent();
         }
@@ -92,7 +90,7 @@ namespace PsuedoMediaBackend.Controllers {
             }
             List<PostProtocolMessage> replies = new List<PostProtocolMessage>();
             if (replyMessages) {
-                replies = (await _postService.GetAllByDefinition(x => x.ParentPostId == post.Id)).Select(x => PostToProtocolMessage(x, false).Result).ToList();
+                replies = (await _postsService.PostService.GetAllByDefinition(x => x.ParentPostId == post.Id)).Select(x => PostToProtocolMessage(x, false).Result).ToList();
             }
             return new PostProtocolMessage(){
                 Message = post.PostText,

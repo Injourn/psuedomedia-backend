@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.OpenApi.Models;
 using PsuedoMediaBackend.Filters;
+using PsuedoMediaBackend.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,8 +34,13 @@ builder.Services.AddSwaggerGen( opt => {
             new string[]{}
         }
     });
-}); 
+});
+
+builder.Services.Configure<PsuedoMediaDatabaseSettings>(
+    builder.Configuration.GetSection("PsuedoMediaDatabase"));
 builder.Services.AddSingleton<PsuedoMediaBackend.Services.AuthenticationService>();
+builder.Services.AddSingleton<PsuedoMediaBackend.Services.AccountService>();
+builder.Services.AddSingleton<PsuedoMediaBackend.Services.PostsService>();
 
 var app = builder.Build();
 
