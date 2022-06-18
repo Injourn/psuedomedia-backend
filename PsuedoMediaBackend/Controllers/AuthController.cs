@@ -11,7 +11,7 @@ namespace PsuedoMediaBackend.Controllers {
             _authenticationService = authenticationService;
         }
 
-        [HttpPost, Route("login")]
+        [HttpPost, Route("[Controller]/login")]
         public async Task<IActionResult> Login(LoginModel loginModel) {
             if (loginModel == null) {
                 return BadRequest("Invalid Client Request");

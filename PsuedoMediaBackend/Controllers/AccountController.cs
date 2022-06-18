@@ -18,8 +18,8 @@ namespace PsuedoMediaBackend.Controllers {
             _accountService = accountService;
         }
 
-        [HttpGet("getAccountInfo/{id:length(24)}"), PsuedoMediaAuthentication, AllowAnonymous]
-        public async Task<AccountResponseProtocolMessage> GetAccountInfo(string? id) {
+        [HttpGet("{id:length(24)}"), PsuedoMediaAuthentication, AllowAnonymous]
+        public async Task<AccountResponseProtocolMessage> Get(string? id) {
             if(_authenticationService.ActiveUserId == null) {
                 return new AccountResponseProtocolMessage() {
                     IsRelated = false
@@ -45,7 +45,7 @@ namespace PsuedoMediaBackend.Controllers {
 
         }
 
-        [HttpPost, Route("createAccount")]
+        [HttpPost]
         public async Task<ActionResult> CreateAccount(AccountProtocolMessage postAccountProtocolMessage) {
             Users user = new Users() {
                 Username = postAccountProtocolMessage.Username,
@@ -56,7 +56,7 @@ namespace PsuedoMediaBackend.Controllers {
             return NoContent();
         }
 
-        [HttpPut, Route("editAccount")]
+        [HttpPut]
         [PsuedoMediaAuthentication]
         public async Task<ActionResult> EditAccount(AccountProtocolMessage postAccountProtocolMessage) {
             Users existingUser = await _authenticationService.UserService.GetByIdAsync(_authenticationService.ActiveUserId);
@@ -69,17 +69,17 @@ namespace PsuedoMediaBackend.Controllers {
             return NoContent();
         }
 
-        [HttpDelete, Route("deleteAccount")]
+        [HttpDelete]
         [PsuedoMediaAuthentication]
         public async Task<ActionResult> DeleteAccount() {
             await _authenticationService.UserService.DeleteAsync(_authenticationService.ActiveUserId);
             return Ok();
         }
 
-        [HttpPost, PsuedoMediaAuthentication, Route("addFriend")]
-        public async Task<ActionResult> AddFriend(RelationshipProtocolMessage relationshipProtocolMessage) {
+        [HttpPost("addFriend/{id:length(24)}"), PsuedoMediaAuthentication,]
+        public async Task<ActionResult> AddFriend(string? id) {
             string? friendTypeId = (await _accountService.RelationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FRIEND.ToString())).First().Id;
-            Users? otherUser = await _authenticationService.UserService.GetByIdAsync(relationshipProtocolMessage.RelatedUserId);
+            Users? otherUser = await _authenticationService.UserService.GetByIdAsync(id);
             if(otherUser == null) {
                 return BadRequest("Other user does not exist");
             }
@@ -92,15 +92,15 @@ namespace PsuedoMediaBackend.Controllers {
             return Ok();
         }
 
-        [HttpDelete, PsuedoMediaAuthentication, Route("removeFriend")]
-        public async Task<ActionResult> RemoveFriend(RelationshipProtocolMessage relationshipProtocolMessage) {
+        [HttpPost("removeFriend/{id:length(24)}"), PsuedoMediaAuthentication]
+        public async Task<ActionResult> RemoveFriend(string? id) {
             string? friendTypeId = (await _accountService.RelationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FRIEND.ToString())).First().Id;
-            Users? otherUser = await _authenticationService.UserService.GetByIdAsync(relationshipProtocolMessage.RelatedUserId);
+            Users? otherUser = await _authenticationService.UserService.GetByIdAsync(id);
             if (otherUser == null) {
                 return BadRequest("Other user does not exist");
             }
             FriendsFollowers? friendsFollowers = await _accountService.FriendsFollowersService.GetOneByDefinition(x => x.UserAId == _authenticationService.ActiveUserId 
-                && x.UserBId == relationshipProtocolMessage.RelatedUserId 
+                && x.UserBId == id
                 && x.RelationShipTypeId == friendTypeId);
             if(friendsFollowers == null) {
                 return StatusCode(500);
@@ -109,10 +109,10 @@ namespace PsuedoMediaBackend.Controllers {
             return Ok();
         }
 
-        [HttpPost, PsuedoMediaAuthentication, Route("follow")]
-        public async Task<ActionResult> Follow(RelationshipProtocolMessage relationshipProtocolMessage) {
+        [HttpPost("follow/{id:length(24)}"), PsuedoMediaAuthentication]
+        public async Task<ActionResult> Follow(string? id) {
             string? followTypeId = (await _accountService.RelationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FOLLOW.ToString())).First().Id;
-            Users? otherUser = await _authenticationService.UserService.GetByIdAsync(relationshipProtocolMessage.RelatedUserId);
+            Users? otherUser = await _authenticationService.UserService.GetByIdAsync(id);
             if (otherUser == null) {
                 return BadRequest("Other user does not exist");
             }
@@ -125,15 +125,15 @@ namespace PsuedoMediaBackend.Controllers {
             return Ok();
         }
 
-        [HttpDelete, PsuedoMediaAuthentication, Route("unFollow")]
-        public async Task<ActionResult> UnFollow(RelationshipProtocolMessage relationshipProtocolMessage) {
+        [HttpPost("unfollow/{id:length(24)}"), PsuedoMediaAuthentication]
+        public async Task<ActionResult> UnFollow(string? id) {
             string? followTypeId = (await _accountService.RelationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FOLLOW.ToString())).First().Id;
-            Users? otherUser = await _authenticationService.UserService.GetByIdAsync(relationshipProtocolMessage.RelatedUserId);
+            Users? otherUser = await _authenticationService.UserService.GetByIdAsync(id);
             if (otherUser == null) {
                 return BadRequest("Other user does not exist");
             }
             FriendsFollowers? friendsFollowers = await _accountService.FriendsFollowersService.GetOneByDefinition(x => x.UserAId == _authenticationService.ActiveUserId
-                && x.UserBId == relationshipProtocolMessage.RelatedUserId
+                && x.UserBId == id
                 && x.RelationShipTypeId == followTypeId);
             if (friendsFollowers == null) {
                 return StatusCode(500);
