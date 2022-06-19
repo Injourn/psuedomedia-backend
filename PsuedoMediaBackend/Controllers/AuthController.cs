@@ -2,6 +2,7 @@
 using PsuedoMediaBackend.Models;
 using PsuedoMediaBackend.Models.ProtocolMessages;
 using PsuedoMediaBackend.Services;
+using System.Text;
 
 namespace PsuedoMediaBackend.Controllers {
     public class AuthController : ControllerBase {
@@ -12,13 +13,13 @@ namespace PsuedoMediaBackend.Controllers {
         }
 
         [HttpPost, Route("[Controller]/login")]
-        public async Task<IActionResult> Login(LoginModel loginModel) {
+        public async Task<IActionResult> Login([FromBody]LoginModel loginModel) {
             if (loginModel == null) {
                 return BadRequest("Invalid Client Request");
             }
             Users? user = await _authenticationService.LoginAttempt(loginModel.Username, loginModel.Password);
             if (user == null) {
-                return Unauthorized();
+                return Unauthorized("Invalid Login");
             }
             else {
                 LoginResponseModel loginResponseModel = await _authenticationService.AddTokens(user);

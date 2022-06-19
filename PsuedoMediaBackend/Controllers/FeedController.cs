@@ -45,7 +45,7 @@ namespace PsuedoMediaBackend.Controllers {
             };
             await _postsService.PostService.CreateAsync(post);
 
-            return Accepted();
+            return NoContent();
         }
 
         [HttpPut("{id:length(24)}")]
