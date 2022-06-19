@@ -3,6 +3,7 @@
         public List<PostProtocolMessage> Replies { get; set; }
         public string? Message { get; set; }
         public string? UserCreatedName { get; set; }
+        public string? UserCreatedById { get; set; }
         public DateTime? CreatedDate { get; set; }
         public string? Id { get; set; }
 

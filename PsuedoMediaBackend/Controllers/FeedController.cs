@@ -96,6 +96,7 @@ namespace PsuedoMediaBackend.Controllers {
                 Message = post.PostText,
                 CreatedDate = post.DateCreated,
                 UserCreatedName = user.DisplayName,
+                UserCreatedById = user.Id,
                 Replies = replies,
                 Id = post.Id
             };
