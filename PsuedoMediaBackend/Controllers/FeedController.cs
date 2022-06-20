@@ -20,7 +20,7 @@ namespace PsuedoMediaBackend.Controllers {
 
         [HttpGet]
         public async Task<List<PostProtocolMessage>> Get() {
-            List<PostProtocolMessage> posts = (await _postsService.PostService.GetAllAsync()).Select(x => PostToProtocolMessage(x).Result).ToList();
+            List<PostProtocolMessage> posts = (await _postsService.PostService.GetAllAsync()).Select(x => PostToProtocolMessage(x).Result).OrderByDescending(x => x.CreatedDate).ToList();
             return posts;
         }
 
