@@ -39,14 +39,19 @@ namespace PsuedoMediaBackend.Services {
             };
         }
 
-        public async Task RefreshToken(RefreshToken refreshToken) {
-            Users users = await UserService.GetByIdAsync(refreshToken.UserId);
+        public async Task<Tuple<OAuthToken,RefreshToken>>? RefreshToken(string refreshToken) {
+            RefreshToken? foundRefreshToken = (await RefreshTokenService.GetAllByDefinition(x => x.Token == refreshToken && x.RemoveDate > DateTime.Now)).FirstOrDefault();
+            if (foundRefreshToken == null) {
+                return null;
+            }
+            Users users = await UserService.GetByIdAsync(foundRefreshToken.UserId);
             OAuthToken newToken = GenerateOAuthToken(users);
             RefreshToken newRefreshToken = GenerateRefreshToken(users);
-            refreshToken.IsInactive = true;
+            foundRefreshToken.IsInactive = true;
             await RefreshTokenService.CreateAsync(newRefreshToken);
             await OAuthService.CreateAsync(newToken);
-            await RefreshTokenService.UpdateAsync(refreshToken.Id, refreshToken);
+            await RefreshTokenService.UpdateAsync(foundRefreshToken.Id, foundRefreshToken);
+            return new Tuple<OAuthToken,RefreshToken>(newToken, newRefreshToken);
         }
 
         public async Task<Users?> LoginAttempt(string username, string password) {
@@ -70,11 +75,22 @@ namespace PsuedoMediaBackend.Services {
 
         public Users DecodeJwtToken(string token) {
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
+            SymmetricSecurityKey symmetricSecurityKey = GenerateSymmetricSecurityKey(jwtKey);
+            TokenValidationParameters tokenValidationParameters = new TokenValidationParameters() {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = symmetricSecurityKey
+            };
+            tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken validatedToken);
             JwtSecurityToken jsonToken = tokenHandler.ReadJwtToken(token);
             return new Users() {
                 Id = jsonToken.Claims.First(x => x.Type == "id").Value,
                 DisplayName = jsonToken.Claims.First(x => x.Type == "username").Value
             };
+        }
+
+        private SymmetricSecurityKey GenerateSymmetricSecurityKey(string v) {
+            byte[] key = Encoding.ASCII.GetBytes(jwtKey);
+            return new SymmetricSecurityKey(key);
         }
 
         private string GenerateRandomString(int length) {
@@ -91,7 +107,6 @@ namespace PsuedoMediaBackend.Services {
         }
         private string GenerateJwtToken(Users user) {
             var tokenHandler = new JwtSecurityTokenHandler();
-            byte[] key = Encoding.ASCII.GetBytes(jwtKey);
             Claim[] claims = new[] { 
                 new Claim("id", user.Id),
                 new Claim("username", user.DisplayName)
@@ -101,7 +116,7 @@ namespace PsuedoMediaBackend.Services {
                 Expires = DateTime.UtcNow.AddHours(1),
                 Issuer = issuer,
                 Audience = audience,
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                SigningCredentials = new SigningCredentials(GenerateSymmetricSecurityKey(jwtKey), SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);

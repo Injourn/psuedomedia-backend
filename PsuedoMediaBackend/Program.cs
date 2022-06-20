@@ -9,7 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors(options => {
     options.AddDefaultPolicy(policy => {
-        policy.WithOrigins("*").AllowAnyHeader();
+        policy.WithOrigins("*").AllowAnyHeader().WithExposedHeaders("pm-jwttoken","pm-refreshtoken");
     });
 });
 

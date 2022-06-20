@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Primitives;
+using Microsoft.IdentityModel.Tokens;
 using PsuedoMediaBackend.Models;
 using PsuedoMediaBackend.Services;
 using System.Net.Http.Headers;
@@ -31,34 +32,38 @@ namespace PsuedoMediaBackend.Filters {
             request.Headers.TryGetValue("pm-refreshToken", out StringValues refreshTokenString);
             string? refreshToken = refreshTokenString; 
             
-            if(!await AuthenticateAsync(authToken, refreshToken)) {
+            if(!await AuthenticateAsync(context,authToken, refreshToken)) {
                 context.Result = new UnauthorizedObjectResult("Invalid Login");
                 return;
             }
         }
 
-        private async Task<bool> AuthenticateAsync(string? authToken,string? refreshToken) {
+        private async Task<bool> AuthenticateAsync(AuthorizationFilterContext context,string? authToken,string? refreshToken) {
             if (authToken == null) {
                 return false;
             }
             //TODO: Add jwt expiration and userId
             OAuthToken? foundToken = (await _authenticationService.OAuthService.GetAllByDefinition(x => x.Token == authToken)).FirstOrDefault();
-            if (foundToken == null) {
-                if(refreshToken == null) {
-                    return false;
-                }
-                RefreshToken? foundRefreshToken = (await _authenticationService.RefreshTokenService.GetAllByDefinition(x => x.Token == refreshToken && x.RemoveDate < DateTime.Now)).FirstOrDefault();
-                if (foundRefreshToken == null) {
-                    return false;
+            try {
+                if (foundToken != null) {
+                    Users user = _authenticationService.DecodeJwtToken(foundToken.Token);
+                    _authenticationService.ActiveUserId = user.Id;
                 }
                 else {
-                    await _authenticationService.RefreshToken(foundRefreshToken);
-                    _authenticationService.ActiveUserId = foundRefreshToken.UserId;
+                    return false;
                 }
-            }
-            else {
-                Users user = _authenticationService.DecodeJwtToken(foundToken.Token);
-                _authenticationService.ActiveUserId = user.Id;
+            } catch (SecurityTokenExpiredException e) {
+                if (refreshToken == null) {
+                    return false;
+                }
+                Tuple<OAuthToken,RefreshToken>? tuple = await _authenticationService.RefreshToken(refreshToken);
+                if (tuple != null) {
+                    context.HttpContext.Response.Headers.Add("pm-jwtToken", tuple.Item1.Token);
+                    context.HttpContext.Response.Headers.Add("pm-refreshToken", tuple.Item2.Token);
+                    _authenticationService.ActiveUserId = tuple.Item2.UserId;
+                }
+                else return false;
+                
             }
             return true;
         }
