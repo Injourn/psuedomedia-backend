@@ -52,18 +52,22 @@ namespace PsuedoMediaBackend.Filters {
                 else {
                     return false;
                 }
-            } catch (SecurityTokenExpiredException e) {
+            }
+            catch (SecurityTokenExpiredException e) {
                 if (refreshToken == null) {
                     return false;
                 }
-                Tuple<OAuthToken,RefreshToken>? tuple = await _authenticationService.RefreshToken(refreshToken);
+                Tuple<OAuthToken, RefreshToken>? tuple = await _authenticationService.RefreshToken(refreshToken);
                 if (tuple != null) {
                     context.HttpContext.Response.Headers.Add("pm-jwtToken", tuple.Item1.Token);
                     context.HttpContext.Response.Headers.Add("pm-refreshToken", tuple.Item2.Token);
                     _authenticationService.ActiveUserId = tuple.Item2.UserId;
                 }
                 else return false;
-                
+
+            }
+            catch (Exception e) {
+                return false;
             }
             return true;
         }

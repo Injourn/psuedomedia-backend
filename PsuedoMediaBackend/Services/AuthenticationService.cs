@@ -78,7 +78,9 @@ namespace PsuedoMediaBackend.Services {
             SymmetricSecurityKey symmetricSecurityKey = GenerateSymmetricSecurityKey(jwtKey);
             TokenValidationParameters tokenValidationParameters = new TokenValidationParameters() {
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = symmetricSecurityKey
+                IssuerSigningKey = symmetricSecurityKey,
+                ValidAudience = audience,
+                ValidIssuer = issuer
             };
             tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken validatedToken);
             JwtSecurityToken jsonToken = tokenHandler.ReadJwtToken(token);
