@@ -28,17 +28,17 @@ namespace PsuedoMediaBackend.Controllers {
 
             AccountResponseProtocolMessage response = new AccountResponseProtocolMessage();
 
-            FriendsFollowers? FromRelationship = (await _accountService.FriendsFollowersService.GetAllByDefinition(x => (x.UserAId == id && x.UserBId == _authenticationService.ActiveUserId))).FirstOrDefault();
-            FriendsFollowers? ToRelationship = (await _accountService.FriendsFollowersService.GetAllByDefinition(x => (x.UserAId == _authenticationService.ActiveUserId && x.UserBId == id))).FirstOrDefault();
+            FriendsFollowers? FromRelationship = await _accountService.FriendsFollowersService.GetOneByDefinition(x => (x.UserAId == id && x.UserBId == _authenticationService.ActiveUserId));
+            FriendsFollowers? ToRelationship = await _accountService.FriendsFollowersService.GetOneByDefinition(x => (x.UserAId == _authenticationService.ActiveUserId && x.UserBId == id));
 
             if (FromRelationship != null) {
                 response.IsRelated = true;
-                response.FromRelationshipType = RelationshipType(FromRelationship).ToString();
+                response.FromRelationshipType = (await RelationshipType(FromRelationship)).ToString();
             }
 
             if (ToRelationship != null) {
                 response.IsRelated = true;
-                response.FromRelationshipType = RelationshipType(ToRelationship).ToString();
+                response.ToRelationshipType = (await RelationshipType(ToRelationship)).ToString();
             }
 
             return response;
@@ -79,17 +79,24 @@ namespace PsuedoMediaBackend.Controllers {
         [HttpPost("addFriend/{id:length(24)}"), PsuedoMediaAuthentication,]
         public async Task<ActionResult> AddFriend(string? id) {
             string? friendTypeId = (await _accountService.RelationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FRIEND.ToString())).First().Id;
-            Users? otherUser = await _authenticationService.UserService.GetByIdAsync(id);
+            Users? otherUser = await _authenticationService.UserService.GetByIdAsync(id);            
             if(otherUser == null) {
                 return BadRequest("Other user does not exist");
             }
+            await _accountService.FriendsFollowersService.DeleteByDefinitionAsync(x => x.UserAId == _authenticationService.ActiveUserId && x.UserBId == id);
             FriendsFollowers friendsFollowers = new FriendsFollowers() {
                 UserAId = _authenticationService.ActiveUserId,
                 UserBId = otherUser.Id,
                 RelationShipTypeId = friendTypeId
             };
             await _accountService.FriendsFollowersService.CreateAsync(friendsFollowers);
-            return Ok();
+            FriendsFollowers? FromRelationship = await _accountService.FriendsFollowersService.GetOneByDefinition(x => (x.UserAId == id && x.UserBId == _authenticationService.ActiveUserId));
+            AccountResponseProtocolMessage response = new AccountResponseProtocolMessage() {
+                IsRelated = true,
+                ToRelationshipType = RelationshipTypeEnum.FRIEND.ToString(),
+                FromRelationshipType = FromRelationship != null ? RelationshipType(FromRelationship).ToString() : null
+            };
+            return Ok(response);
         }
 
         [HttpPost("removeFriend/{id:length(24)}"), PsuedoMediaAuthentication]
@@ -106,7 +113,13 @@ namespace PsuedoMediaBackend.Controllers {
                 return StatusCode(500);
             }
             _accountService.FriendsFollowersService.DeleteAsync(friendsFollowers.Id);
-            return Ok();
+            FriendsFollowers? FromRelationship = await _accountService.FriendsFollowersService.GetOneByDefinition(x => (x.UserAId == id && x.UserBId == _authenticationService.ActiveUserId));
+            AccountResponseProtocolMessage response = new AccountResponseProtocolMessage() {
+                IsRelated = FromRelationship != null,
+                ToRelationshipType = null,
+                FromRelationshipType = FromRelationship != null ? RelationshipType(FromRelationship).ToString() : null
+            };
+            return Ok(response);
         }
 
         [HttpPost("follow/{id:length(24)}"), PsuedoMediaAuthentication]
@@ -122,7 +135,13 @@ namespace PsuedoMediaBackend.Controllers {
                 RelationShipTypeId = followTypeId
             };
             await _accountService.FriendsFollowersService.CreateAsync(friendsFollowers);
-            return Ok();
+            FriendsFollowers? FromRelationship = await _accountService.FriendsFollowersService.GetOneByDefinition(x => (x.UserAId == id && x.UserBId == _authenticationService.ActiveUserId));
+            AccountResponseProtocolMessage response = new AccountResponseProtocolMessage() {
+                IsRelated = true,
+                ToRelationshipType = RelationshipTypeEnum.FOLLOW.ToString(),
+                FromRelationshipType = FromRelationship != null ? RelationshipType(FromRelationship).ToString() : null
+            };
+            return Ok(response);
         }
 
         [HttpPost("unfollow/{id:length(24)}"), PsuedoMediaAuthentication]
@@ -139,7 +158,13 @@ namespace PsuedoMediaBackend.Controllers {
                 return StatusCode(500);
             }
             _accountService.FriendsFollowersService.DeleteAsync(friendsFollowers.Id);
-            return Ok();
+            FriendsFollowers? FromRelationship = await _accountService.FriendsFollowersService.GetOneByDefinition(x => (x.UserAId == id && x.UserBId == _authenticationService.ActiveUserId));
+            AccountResponseProtocolMessage response = new AccountResponseProtocolMessage() {
+                IsRelated = FromRelationship != null,
+                ToRelationshipType = null,
+                FromRelationshipType = FromRelationship != null ? RelationshipType(FromRelationship).ToString() : null
+            };
+            return Ok(response);
         }
 
         private async Task<RelationshipTypeEnum> RelationshipType(FriendsFollowers friendsFollowers) {
