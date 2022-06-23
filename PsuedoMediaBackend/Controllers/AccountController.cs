@@ -167,6 +167,19 @@ namespace PsuedoMediaBackend.Controllers {
             return Ok(response);
         }
 
+        [HttpGet("getAllFriends")]
+        public async Task<ActionResult> GetAllFriends() {
+            List<FriendsFollowers> friendFollowers = await _accountService.GetAllFriendsAndFollowing(_authenticationService?.ActiveUserId);
+            List<AccountFriendResponseProtocolMessage> response = friendFollowers.Select(x => {
+                Users other = _authenticationService.UserService.GetByIdAsync(x.UserBId).Result;
+                return new AccountFriendResponseProtocolMessage() {
+                    UserId = other.Id,
+                    DisplayName = other.DisplayName
+                };
+            }).ToList();
+            return Ok(response);
+        }
+
         private async Task<RelationshipTypeEnum> RelationshipType(FriendsFollowers friendsFollowers) {
             string? friendTypeId = (await _accountService.RelationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FRIEND.ToString())).First().Id;
             string? followTypeId = (await _accountService.RelationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FOLLOW.ToString())).First().Id;
