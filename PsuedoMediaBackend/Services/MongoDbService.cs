@@ -24,6 +24,10 @@ namespace PsuedoMediaBackend.Services {
         public async Task<T> GetOneByDefinition(System.Linq.Expressions.Expression<Func<T, bool>> filter) =>
             await _mongoCollection.Find(filter).FirstOrDefaultAsync();
 
+        public async Task<T> GetByCode(string code) {
+            return await GetOneByDefinition(x => (x as DbEnumeration).Code == code);
+        }
+
         public async Task<List<T>> GetAllByDefinition(System.Linq.Expressions.Expression<Func<T,bool>> filter,int offset = 0) =>
             await _mongoCollection.Find(filter).Limit(10).Skip(offset).ToListAsync();
 
