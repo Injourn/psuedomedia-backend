@@ -11,11 +11,13 @@ namespace PsuedoMediaBackend.Controllers {
 
         readonly PostsService _postsService;
         readonly AuthenticationService _authenticationService;
+        readonly AccountService _accountService;
 
-        public FeedController(AuthenticationService authenticationService, PostsService postsService) {            
+        public FeedController(AuthenticationService authenticationService, PostsService postsService, AccountService accountService) {            
             _authenticationService = authenticationService;
             _postsService = postsService;
             _postsService.PostService.UserId = _authenticationService.ActiveUserId;
+            _accountService = accountService;
         }
 
         [HttpGet]
@@ -33,6 +35,22 @@ namespace PsuedoMediaBackend.Controllers {
             }
 
             return post;
+        }
+        [HttpGet("getUserPosts/{id:length(24)}")]
+        public async Task<ActionResult> GetUserPosts(string id) {
+            List<Post> posts = await _postsService.PostService.GetAllByDefinition(x => x.CreatedByUserId == id);
+            return Ok(posts.OrderByDescending(x => x.DateCreated).Select(x => PostToProtocolMessage(x).Result));
+        }
+
+        [HttpGet("getFriendsPosts"),PsuedoMediaAuthentication]
+        public async Task<ActionResult> GetFriendsPosts() {
+            List<FriendsFollowers> friendsFollowers = await _accountService.GetAllFriendsAndFollowing(_authenticationService.ActiveUserId);
+            HashSet<string> userIds = new HashSet<string>();
+            friendsFollowers.ForEach(x => {
+                userIds.Add(x.UserBId);
+            });
+            List<Post> posts = await _postsService.PostService.GetAllByDefinition(x => userIds.Contains(x.CreatedByUserId));
+            return Ok(posts.OrderByDescending(x => x.DateCreated).Select(x => PostToProtocolMessage(x).Result));
         }
 
         [HttpPost]

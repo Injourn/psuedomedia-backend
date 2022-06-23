@@ -3,6 +3,7 @@
         public bool IsRelated { get; set; }
         public string? ToRelationshipType { get; set; }
         public string? FromRelationshipType { get; set; }
+        public string? DisplayName { get; set; }
 
     }
 }

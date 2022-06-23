@@ -41,6 +41,9 @@ namespace PsuedoMediaBackend.Controllers {
                 response.ToRelationshipType = (await RelationshipType(ToRelationship)).ToString();
             }
 
+            Users user = await _authenticationService.UserService.GetByIdAsync(id);
+            response.DisplayName = user.DisplayName;
+
             return response;
 
         }
@@ -167,7 +170,7 @@ namespace PsuedoMediaBackend.Controllers {
             return Ok(response);
         }
 
-        [HttpGet("getAllFriends")]
+        [HttpGet("getAllFriends"),PsuedoMediaAuthentication]
         public async Task<ActionResult> GetAllFriends() {
             List<FriendsFollowers> friendFollowers = await _accountService.GetAllFriendsAndFollowing(_authenticationService?.ActiveUserId);
             List<AccountFriendResponseProtocolMessage> response = friendFollowers.Select(x => {
