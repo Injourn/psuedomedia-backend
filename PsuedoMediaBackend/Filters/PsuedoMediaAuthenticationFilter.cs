@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Tokens;
@@ -16,6 +17,8 @@ namespace PsuedoMediaBackend.Filters {
         public async Task OnAuthorizationAsync(AuthorizationFilterContext context) {
             HttpRequest request = context.HttpContext.Request;
             AuthenticationHeaderValue authorization;
+            bool hasAllowAnonymous = context.ActionDescriptor.EndpointMetadata
+                                 .Any(em => em.GetType() == typeof(AllowAnonymousAttribute));
             if (!AuthenticationHeaderValue.TryParse(request.Headers.Authorization, out authorization)) {
                 context.Result = new UnauthorizedObjectResult("Bad Request");
                 return;
@@ -32,7 +35,7 @@ namespace PsuedoMediaBackend.Filters {
             request.Headers.TryGetValue("pm-refreshToken", out StringValues refreshTokenString);
             string? refreshToken = refreshTokenString; 
             
-            if(!await AuthenticateAsync(context,authToken, refreshToken)) {
+            if(!await AuthenticateAsync(context,authToken, refreshToken) && !hasAllowAnonymous) {
                 context.Result = new UnauthorizedObjectResult("Invalid Login");
                 return;
             }

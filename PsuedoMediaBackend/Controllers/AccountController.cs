@@ -20,9 +20,11 @@ namespace PsuedoMediaBackend.Controllers {
 
         [HttpGet("{id:length(24)}"), PsuedoMediaAuthentication, AllowAnonymous]
         public async Task<AccountResponseProtocolMessage> Get(string? id) {
-            if(_authenticationService.ActiveUserId == null) {
+            Users user = await _authenticationService.UserService.GetByIdAsync(id);
+            if (_authenticationService.ActiveUserId == null) {
                 return new AccountResponseProtocolMessage() {
-                    IsRelated = false
+                    IsRelated = false,
+                    DisplayName = user.DisplayName
                 };
             }
 
@@ -41,7 +43,7 @@ namespace PsuedoMediaBackend.Controllers {
                 response.ToRelationshipType = (await RelationshipType(ToRelationship)).ToString();
             }
 
-            Users user = await _authenticationService.UserService.GetByIdAsync(id);
+            
             response.DisplayName = user.DisplayName;
 
             return response;
