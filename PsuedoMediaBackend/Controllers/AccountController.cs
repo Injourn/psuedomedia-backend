@@ -43,11 +43,23 @@ namespace PsuedoMediaBackend.Controllers {
                 response.ToRelationshipType = (await RelationshipType(ToRelationship)).ToString();
             }
 
-            
+
             response.DisplayName = user.DisplayName;
 
             return response;
 
+        }
+
+        [HttpGet("getUserAccount"),PsuedoMediaAuthentication]
+        public async Task<ActionResult> GetUserAccount() {
+            Users currentUser = await _authenticationService.UserService.GetByIdAsync(_authenticationService.ActiveUserId);
+            AccountProtocolMessage accountProtocolMessage = new AccountProtocolMessage {
+                Id = currentUser.Id,
+                Username = currentUser.Username,
+                Name = currentUser.DisplayName
+            };
+
+            return Ok(accountProtocolMessage);
         }
 
         [HttpPost]
@@ -66,9 +78,10 @@ namespace PsuedoMediaBackend.Controllers {
         public async Task<ActionResult> EditAccount(AccountProtocolMessage postAccountProtocolMessage) {
             Users existingUser = await _authenticationService.UserService.GetByIdAsync(_authenticationService.ActiveUserId);
             Users user = new Users() {
+                Id = existingUser.Id,
                 Username = existingUser.Username,
-                Password = postAccountProtocolMessage.Password ?? existingUser.Password,
-                DisplayName = postAccountProtocolMessage.Name ?? existingUser.DisplayName
+                Password = string.IsNullOrEmpty(postAccountProtocolMessage.Password) ? existingUser.Password : postAccountProtocolMessage.Password,
+                DisplayName = string.IsNullOrEmpty(postAccountProtocolMessage.Name) ? existingUser.DisplayName : postAccountProtocolMessage.Name,
             };
             await _authenticationService.UserService.UpdateAsync(existingUser.Id, user);
             return NoContent();
