@@ -96,7 +96,7 @@ namespace PsuedoMediaBackend.Controllers {
 
         [HttpPost("addFriend/{id:length(24)}"), PsuedoMediaAuthentication,]
         public async Task<ActionResult> AddFriend(string? id) {
-            string? friendTypeId = (await _accountService.RelationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FRIEND.ToString())).First().Id;
+            string? friendTypeId = (await _accountService.RelationshipTypeService.GetSomeByDefinition(x => x.Code == RelationshipTypeEnum.FRIEND.ToString())).First().Id;
             Users? otherUser = await _authenticationService.UserService.GetByIdAsync(id);            
             if(otherUser == null) {
                 return BadRequest("Other user does not exist");
@@ -119,7 +119,7 @@ namespace PsuedoMediaBackend.Controllers {
 
         [HttpPost("removeFriend/{id:length(24)}"), PsuedoMediaAuthentication]
         public async Task<ActionResult> RemoveFriend(string? id) {
-            string? friendTypeId = (await _accountService.RelationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FRIEND.ToString())).First().Id;
+            string? friendTypeId = (await _accountService.RelationshipTypeService.GetSomeByDefinition(x => x.Code == RelationshipTypeEnum.FRIEND.ToString())).First().Id;
             Users? otherUser = await _authenticationService.UserService.GetByIdAsync(id);
             if (otherUser == null) {
                 return BadRequest("Other user does not exist");
@@ -142,7 +142,7 @@ namespace PsuedoMediaBackend.Controllers {
 
         [HttpPost("follow/{id:length(24)}"), PsuedoMediaAuthentication]
         public async Task<ActionResult> Follow(string? id) {
-            string? followTypeId = (await _accountService.RelationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FOLLOW.ToString())).First().Id;
+            string? followTypeId = (await _accountService.RelationshipTypeService.GetSomeByDefinition(x => x.Code == RelationshipTypeEnum.FOLLOW.ToString())).First().Id;
             Users? otherUser = await _authenticationService.UserService.GetByIdAsync(id);
             if (otherUser == null) {
                 return BadRequest("Other user does not exist");
@@ -164,7 +164,7 @@ namespace PsuedoMediaBackend.Controllers {
 
         [HttpPost("unfollow/{id:length(24)}"), PsuedoMediaAuthentication]
         public async Task<ActionResult> UnFollow(string? id) {
-            string? followTypeId = (await _accountService.RelationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FOLLOW.ToString())).First().Id;
+            string? followTypeId = (await _accountService.RelationshipTypeService.GetSomeByDefinition(x => x.Code == RelationshipTypeEnum.FOLLOW.ToString())).First().Id;
             Users? otherUser = await _authenticationService.UserService.GetByIdAsync(id);
             if (otherUser == null) {
                 return BadRequest("Other user does not exist");
@@ -199,9 +199,9 @@ namespace PsuedoMediaBackend.Controllers {
         }
 
         private async Task<RelationshipTypeEnum> RelationshipType(FriendsFollowers friendsFollowers) {
-            string? friendTypeId = (await _accountService.RelationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FRIEND.ToString())).First().Id;
-            string? followTypeId = (await _accountService.RelationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.FOLLOW.ToString())).First().Id;
-            string? blockTypeId = (await _accountService.RelationshipTypeService.GetAllByDefinition(x => x.Code == RelationshipTypeEnum.BLOCK.ToString())).First().Id;
+            string? friendTypeId = (await _accountService.RelationshipTypeService.GetSomeByDefinition(x => x.Code == RelationshipTypeEnum.FRIEND.ToString())).First().Id;
+            string? followTypeId = (await _accountService.RelationshipTypeService.GetSomeByDefinition(x => x.Code == RelationshipTypeEnum.FOLLOW.ToString())).First().Id;
+            string? blockTypeId = (await _accountService.RelationshipTypeService.GetSomeByDefinition(x => x.Code == RelationshipTypeEnum.BLOCK.ToString())).First().Id;
 
             if(friendsFollowers.RelationShipTypeId == friendTypeId) {
                 return RelationshipTypeEnum.FRIEND;

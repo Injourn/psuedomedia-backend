@@ -46,7 +46,7 @@ namespace PsuedoMediaBackend.Filters {
                 return false;
             }
             //TODO: Add jwt expiration and userId
-            OAuthToken? foundToken = (await _authenticationService.OAuthService.GetAllByDefinition(x => x.Token == authToken)).FirstOrDefault();
+            OAuthToken? foundToken = (await _authenticationService.OAuthService.GetSomeByDefinition(x => x.Token == authToken)).FirstOrDefault();
             try {
                 if (foundToken != null) {
                     Users user = _authenticationService.DecodeJwtToken(foundToken.Token);

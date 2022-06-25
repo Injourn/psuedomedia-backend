@@ -23,7 +23,7 @@ namespace PsuedoMediaBackend.Controllers {
         [HttpGet]
         public async Task<List<PostProtocolMessage>> Get() {
             PostType postType = await _postsService.PostTypeService.GetByCode(PostTypeEnum.POST.ToString());
-            List<PostProtocolMessage> posts = (await _postsService.PostService.GetAllByDefinition(x => x.PostTypeId == postType.Id)).Select(x => PostToProtocolMessage(x).Result).OrderByDescending(x => x.CreatedDate).ToList();
+            List<PostProtocolMessage> posts = (await _postsService.PostService.GetSomeByDefinition(x => x.PostTypeId == postType.Id)).Select(x => PostToProtocolMessage(x).Result).OrderByDescending(x => x.CreatedDate).ToList();
             return posts;
         }
 
@@ -39,7 +39,7 @@ namespace PsuedoMediaBackend.Controllers {
         }
         [HttpGet("getUserPosts/{id:length(24)}")]
         public async Task<ActionResult> GetUserPosts(string id) {
-            List<Post> posts = await _postsService.PostService.GetAllByDefinition(x => x.CreatedByUserId == id);
+            List<Post> posts = await _postsService.PostService.GetSomeByDefinition(x => x.CreatedByUserId == id);
             return Ok(posts.OrderByDescending(x => x.DateCreated).Select(x => PostToProtocolMessage(x).Result));
         }
 
@@ -50,7 +50,7 @@ namespace PsuedoMediaBackend.Controllers {
             friendsFollowers.ForEach(x => {
                 userIds.Add(x.UserBId);
             });
-            List<Post> posts = await _postsService.PostService.GetAllByDefinition(x => userIds.Contains(x.CreatedByUserId));
+            List<Post> posts = await _postsService.PostService.GetSomeByDefinition(x => userIds.Contains(x.CreatedByUserId));
             return Ok(posts.OrderByDescending(x => x.DateCreated).Select(x => PostToProtocolMessage(x).Result));
         }
 
@@ -75,7 +75,7 @@ namespace PsuedoMediaBackend.Controllers {
             var post = await _postsService.PostService.GetByIdAsync(id);
             Post newPost = new Post() {
                 PostText = updatedPost.PostText,
-                PostTypeId = (await _postsService.PostTypeService.GetAllByDefinition(x => x.Code == updatedPost.PostTypeCode.ToString())).FirstOrDefault()?.Id,
+                PostTypeId = (await _postsService.PostTypeService.GetSomeByDefinition(x => x.Code == updatedPost.PostTypeCode.ToString())).FirstOrDefault()?.Id,
                 ParentPostId = updatedPost.ParentPostId,
             };
 
@@ -104,14 +104,31 @@ namespace PsuedoMediaBackend.Controllers {
             return NoContent();
         }
 
+        [HttpPost("upvotePost"),PsuedoMediaAuthentication]
+        public async Task<ActionResult> UpvotePost(string postId) {
+            await _postsService.RatePost(postId, _authenticationService.ActiveUserId, 1);
+            return Ok();
+        }
+
+        [HttpPost("downvotePost"), PsuedoMediaAuthentication]
+        public async Task<ActionResult> DownvotePost(string postId) {
+            await _postsService.RatePost(postId, _authenticationService.ActiveUserId, -1);
+            return Ok();
+        }
+
+        [HttpGet("postRating")]
+        public async Task<ActionResult> PostRating(string postId) {
+            return Ok(await _postsService.PostRatings(postId));
+        }
+
         private async Task<PostProtocolMessage> PostToProtocolMessage(Post post,bool replyMessages = true) {
             Users user = await _authenticationService.UserService.GetByIdAsync(post.CreatedByUserId);
             if(user == null) {
-                user = (await _authenticationService.UserService.GetAllByDefinition(x => x.DisplayName == "UnknownUser")).First();
+                user = (await _authenticationService.UserService.GetSomeByDefinition(x => x.DisplayName == "UnknownUser")).First();
             }
             List<PostProtocolMessage> replies = new List<PostProtocolMessage>();
             if (replyMessages) {
-                replies = (await _postsService.PostService.GetAllByDefinition(x => x.ParentPostId == post.Id)).Select(x => PostToProtocolMessage(x, false).Result).ToList();
+                replies = (await _postsService.PostService.GetSomeByDefinition(x => x.ParentPostId == post.Id)).Select(x => PostToProtocolMessage(x, false).Result).ToList();
             }
             return new PostProtocolMessage(){
                 Message = post.PostText,

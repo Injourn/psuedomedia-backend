@@ -15,8 +15,8 @@ namespace PsuedoMediaBackend.Services {
             _mongoCollection = mongoDatabase.GetCollection<T>(typeof(T).Name.ToLower());
         }
 
-        public async Task<List<T>> GetAllAsync(int offset = 0) =>
-            await _mongoCollection.Find(_ => true).Limit(10).Skip(0).ToListAsync();
+        public async Task<List<T>> GetAllAsync() =>
+            await _mongoCollection.Find(_ => true).ToListAsync();
 
         public async Task<T> GetByIdAsync(string id) =>
             await _mongoCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
@@ -28,8 +28,14 @@ namespace PsuedoMediaBackend.Services {
             return await GetOneByDefinition(x => (x as DbEnumeration).Code == code);
         }
 
-        public async Task<List<T>> GetAllByDefinition(System.Linq.Expressions.Expression<Func<T,bool>> filter,int offset = 0) =>
+        public long GetCountByDefinition(System.Linq.Expressions.Expression<Func<T, bool>> filter) =>
+            _mongoCollection.CountDocuments(filter);
+
+        public async Task<List<T>> GetSomeByDefinition(System.Linq.Expressions.Expression<Func<T,bool>> filter,int offset = 0) =>
             await _mongoCollection.Find(filter).Limit(10).Skip(offset).ToListAsync();
+
+        public async Task<List<T>> GetAllByDefinition(System.Linq.Expressions.Expression<Func<T, bool>> filter) =>
+            await _mongoCollection.Find(filter).ToListAsync();
 
         public async Task CreateAsync(T dataBaseItem) {
             if(dataBaseItem == null) {
