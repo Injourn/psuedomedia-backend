@@ -22,7 +22,8 @@ namespace PsuedoMediaBackend.Controllers {
 
         [HttpGet]
         public async Task<List<PostProtocolMessage>> Get() {
-            List<PostProtocolMessage> posts = (await _postsService.PostService.GetAllAsync()).Select(x => PostToProtocolMessage(x).Result).OrderByDescending(x => x.CreatedDate).ToList();
+            PostType postType = await _postsService.PostTypeService.GetByCode(PostTypeEnum.POST.ToString());
+            List<PostProtocolMessage> posts = (await _postsService.PostService.GetAllByDefinition(x => x.PostTypeId == postType.Id)).Select(x => PostToProtocolMessage(x).Result).OrderByDescending(x => x.CreatedDate).ToList();
             return posts;
         }
 
@@ -56,9 +57,11 @@ namespace PsuedoMediaBackend.Controllers {
         [HttpPost]
         [PsuedoMediaAuthentication]
         public async Task<IActionResult> Post(RequestPostProtocolMessage newPost) {
+            PostType postType = await _postsService.PostTypeService.GetByCode(PostTypeEnum.POST.ToString());
+            PostType replyType = await _postsService.PostTypeService.GetByCode(PostTypeEnum.REPLY.ToString());
             Post post = new Post() {
                 PostText = newPost.PostText,
-                PostTypeId = (await _postsService.PostTypeService.GetAllByDefinition(x => x.Code == newPost.PostTypeCode.ToString())).FirstOrDefault()?.Id,
+                PostTypeId = newPost.ParentPostId == null ? postType.Id : replyType.Id,
                 ParentPostId = newPost.ParentPostId,
             };
             await _postsService.PostService.CreateAsync(post);
