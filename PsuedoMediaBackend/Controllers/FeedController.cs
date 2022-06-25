@@ -114,12 +114,7 @@ namespace PsuedoMediaBackend.Controllers {
         public async Task<ActionResult> DownvotePost(string postId) {
             await _postsService.RatePost(postId, _authenticationService.ActiveUserId, -1);
             return Ok();
-        }
-
-        [HttpGet("postRating")]
-        public async Task<ActionResult> PostRating(string postId) {
-            return Ok(await _postsService.PostRatings(postId));
-        }
+        }        
 
         private async Task<PostProtocolMessage> PostToProtocolMessage(Post post,bool replyMessages = true) {
             Users user = await _authenticationService.UserService.GetByIdAsync(post.CreatedByUserId);
@@ -130,13 +125,15 @@ namespace PsuedoMediaBackend.Controllers {
             if (replyMessages) {
                 replies = (await _postsService.PostService.GetSomeByDefinition(x => x.ParentPostId == post.Id)).Select(x => PostToProtocolMessage(x, false).Result).ToList();
             }
+            long rating = await _postsService.PostRatings(post.Id);
             return new PostProtocolMessage(){
                 Message = post.PostText,
                 CreatedDate = post.DateCreated,
                 UserCreatedName = user.DisplayName,
                 UserCreatedById = user.Id,
                 Replies = replies,
-                Id = post.Id
+                Id = post.Id,
+                Rating = rating,
             };
         }
     }
