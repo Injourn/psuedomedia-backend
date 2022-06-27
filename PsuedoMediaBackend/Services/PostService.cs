@@ -31,5 +31,10 @@ namespace PsuedoMediaBackend.Services {
             });
             return rating;
         }
+
+        public async Task<int> UserRating(string PostId, string UserId) {
+            PostRating postRating = await PostRatingService.GetOneByDefinition(x => x.PostId == PostId && x.UserId == UserId);
+            return postRating?.Value ?? 0;
+        }
     }
 }

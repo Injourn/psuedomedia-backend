@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using PsuedoMediaBackend.Filters;
 using PsuedoMediaBackend.Models;
 using PsuedoMediaBackend.Models.ProtocolMessages;
@@ -20,7 +21,7 @@ namespace PsuedoMediaBackend.Controllers {
             _accountService = accountService;
         }
 
-        [HttpGet]
+        [HttpGet, PsuedoMediaAuthentication, AllowAnonymous]
         public async Task<List<PostProtocolMessage>> Get() {
             PostType postType = await _postsService.PostTypeService.GetByCode(PostTypeEnum.POST.ToString());
             List<PostProtocolMessage> posts = (await _postsService.PostService.GetSomeByDefinition(x => x.PostTypeId == postType.Id)).Select(x => PostToProtocolMessage(x).Result).OrderByDescending(x => x.CreatedDate).ToList();
@@ -107,13 +108,21 @@ namespace PsuedoMediaBackend.Controllers {
         [HttpPost("upvotePost"),PsuedoMediaAuthentication]
         public async Task<ActionResult> UpvotePost(string postId) {
             await _postsService.RatePost(postId, _authenticationService.ActiveUserId, 1);
-            return Ok();
+            RatingPostResponseProtocolMessage response = new RatingPostResponseProtocolMessage {
+                Rating = await _postsService.PostRatings(postId),
+                UserRating = await _postsService.UserRating(postId, _authenticationService.ActiveUserId)
+            };
+            return Ok(response);
         }
 
         [HttpPost("downvotePost"), PsuedoMediaAuthentication]
         public async Task<ActionResult> DownvotePost(string postId) {
             await _postsService.RatePost(postId, _authenticationService.ActiveUserId, -1);
-            return Ok();
+            RatingPostResponseProtocolMessage response = new RatingPostResponseProtocolMessage {
+                Rating = await _postsService.PostRatings(postId),
+                UserRating = await _postsService.UserRating(postId, _authenticationService.ActiveUserId)
+            };
+            return Ok(response);
         }        
 
         private async Task<PostProtocolMessage> PostToProtocolMessage(Post post,bool replyMessages = true) {
@@ -126,6 +135,10 @@ namespace PsuedoMediaBackend.Controllers {
                 replies = (await _postsService.PostService.GetSomeByDefinition(x => x.ParentPostId == post.Id)).Select(x => PostToProtocolMessage(x, false).Result).ToList();
             }
             long rating = await _postsService.PostRatings(post.Id);
+            int userRating = 0;
+            if (_authenticationService?.ActiveUserId != null) {
+                userRating = await _postsService.UserRating(post.Id, _authenticationService.ActiveUserId);
+            }
             return new PostProtocolMessage(){
                 Message = post.PostText,
                 CreatedDate = post.DateCreated,
@@ -134,6 +147,7 @@ namespace PsuedoMediaBackend.Controllers {
                 Replies = replies,
                 Id = post.Id,
                 Rating = rating,
+                UserRating = userRating
             };
         }
     }

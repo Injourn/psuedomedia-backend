@@ -7,6 +7,7 @@
         public DateTime? CreatedDate { get; set; }
         public string? Id { get; set; }
         public long Rating { get; set; }
+        public int UserRating { get; set; }
 
         public PostProtocolMessage() {
             Replies = new List<PostProtocolMessage>();
