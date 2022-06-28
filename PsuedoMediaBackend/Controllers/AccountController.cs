@@ -63,11 +63,11 @@ namespace PsuedoMediaBackend.Controllers {
         }
 
         [HttpPost]
-        public async Task<ActionResult> CreateAccount(AccountProtocolMessage postAccountProtocolMessage) {
+        public async Task<ActionResult> CreateAccount(AccountProtocolMessage body) {
             Users user = new Users() {
-                Username = postAccountProtocolMessage.Username,
-                Password = postAccountProtocolMessage.Password,
-                DisplayName = postAccountProtocolMessage.Name
+                Username = body.Username,
+                Password = body.Password,
+                DisplayName = body.Name
             };
             await _authenticationService.UserService.CreateAsync(user);
             return NoContent();
@@ -75,13 +75,13 @@ namespace PsuedoMediaBackend.Controllers {
 
         [HttpPut]
         [PsuedoMediaAuthentication]
-        public async Task<ActionResult> EditAccount(AccountProtocolMessage postAccountProtocolMessage) {
+        public async Task<ActionResult> EditAccount(AccountProtocolMessage body) {
             Users existingUser = await _authenticationService.UserService.GetByIdAsync(_authenticationService.ActiveUserId);
             Users user = new Users() {
                 Id = existingUser.Id,
                 Username = existingUser.Username,
-                Password = string.IsNullOrEmpty(postAccountProtocolMessage.Password) ? existingUser.Password : postAccountProtocolMessage.Password,
-                DisplayName = string.IsNullOrEmpty(postAccountProtocolMessage.Name) ? existingUser.DisplayName : postAccountProtocolMessage.Name,
+                Password = string.IsNullOrEmpty(body.Password) ? existingUser.Password : body.Password,
+                DisplayName = string.IsNullOrEmpty(body.Name) ? existingUser.DisplayName : body.Name,
             };
             await _authenticationService.UserService.UpdateAsync(existingUser.Id, user);
             return NoContent();

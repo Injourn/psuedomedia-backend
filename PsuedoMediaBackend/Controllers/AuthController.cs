@@ -13,11 +13,11 @@ namespace PsuedoMediaBackend.Controllers {
         }
 
         [HttpPost, Route("[Controller]/login")]
-        public async Task<IActionResult> Login([FromBody]LoginModel loginModel) {
-            if (loginModel == null) {
+        public async Task<IActionResult> Login([FromBody]LoginModel body) {
+            if (body == null) {
                 return BadRequest("Invalid Client Request");
             }
-            Users? user = await _authenticationService.LoginAttempt(loginModel.Username, loginModel.Password);
+            Users? user = await _authenticationService.LoginAttempt(body.Username, body.Password);
             if (user == null) {
                 return Unauthorized("Invalid Login");
             }

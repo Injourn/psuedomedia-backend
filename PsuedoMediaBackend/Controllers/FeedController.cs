@@ -57,13 +57,13 @@ namespace PsuedoMediaBackend.Controllers {
 
         [HttpPost]
         [PsuedoMediaAuthentication]
-        public async Task<IActionResult> Post(RequestPostProtocolMessage newPost) {
+        public async Task<IActionResult> Post(RequestPostProtocolMessage body) {
             PostType postType = await _postsService.PostTypeService.GetByCode(PostTypeEnum.POST.ToString());
             PostType replyType = await _postsService.PostTypeService.GetByCode(PostTypeEnum.REPLY.ToString());
             Post post = new Post() {
-                PostText = newPost.PostText,
-                PostTypeId = newPost.ParentPostId == null ? postType.Id : replyType.Id,
-                ParentPostId = newPost.ParentPostId,
+                PostText = body.PostText,
+                PostTypeId = body.ParentPostId == null ? postType.Id : replyType.Id,
+                ParentPostId = body.ParentPostId,
             };
             await _postsService.PostService.CreateAsync(post);
 
@@ -72,9 +72,9 @@ namespace PsuedoMediaBackend.Controllers {
 
         [HttpPut("{id:length(24)}")]
         [PsuedoMediaAuthentication]
-        public async Task<IActionResult> Update(string id, RequestPostProtocolMessage updatedPost) {
+        public async Task<IActionResult> Update(string id, RequestPostProtocolMessage body) {
             var post = await _postsService.PostService.GetByIdAsync(id);
-            post.PostText = updatedPost.PostText;
+            post.PostText = body.PostText;
 
             if (post is null) {
                 return NotFound();
