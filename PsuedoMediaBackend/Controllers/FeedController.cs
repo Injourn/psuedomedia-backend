@@ -74,19 +74,13 @@ namespace PsuedoMediaBackend.Controllers {
         [PsuedoMediaAuthentication]
         public async Task<IActionResult> Update(string id, RequestPostProtocolMessage updatedPost) {
             var post = await _postsService.PostService.GetByIdAsync(id);
-            Post newPost = new Post() {
-                PostText = updatedPost.PostText,
-                PostTypeId = (await _postsService.PostTypeService.GetSomeByDefinition(x => x.Code == updatedPost.PostTypeCode.ToString())).FirstOrDefault()?.Id,
-                ParentPostId = updatedPost.ParentPostId,
-            };
+            post.PostText = updatedPost.PostText;
 
             if (post is null) {
                 return NotFound();
             }
 
-            newPost.Id = post.Id;
-
-            await _postsService.PostService.UpdateAsync(id, newPost);
+            await _postsService.PostService.UpdateAsync(id, post);
 
             return NoContent();
         }
