@@ -1,10 +1,11 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.Options;
 using PsuedoMediaBackend.Models;
 
 namespace PsuedoMediaBackend.Services {
     public class AttachmentService {
         public MongoDbService<Attachment> FileAttachmentService { get; private set; }
-        public MongoDbService<AttachmentType> AttachmentTypeService { get; private set; }        
+        public MongoDbService<AttachmentType> AttachmentTypeService { get; private set; }
 
         public AttachmentService(IOptions<PsuedoMediaDatabaseSettings> psuedoMediaDatabaseSettings) {
             FileAttachmentService = new MongoDbService<Attachment>(psuedoMediaDatabaseSettings);
@@ -13,16 +14,28 @@ namespace PsuedoMediaBackend.Services {
         public async Task<bool> AddAttachment(IFormFile file,string directory,string postId) {
             try {
                 if (file.Length > 0) {
-                    string fileSystemName = postId + file.Name.Split(".").Last();
+                    string fileSystemName = postId + "." + file.FileName.Split(".").Last();
                     string fileDirectory = Path.Combine(Directory.GetCurrentDirectory(), directory);
+                    string fullPath = Path.Combine(fileDirectory, fileSystemName);
+                    string contentType;
+                    new FileExtensionContentTypeProvider().TryGetContentType(file.FileName, out contentType);
+                    AttachmentType attachmentType = await AttachmentTypeService.GetOneByDefinition(x => x.MimeType == contentType);
+                    if (attachmentType == null) {
+                        return false;
+                    }
                     Attachment attachment = new Attachment {
-                        AttachmentTypeId = type.Id,
+                        AttachmentTypeId = attachmentType.Id,
                         PostId = postId,
                         FileName = file.FileName,
                         FileSystemFileName = fileSystemName
                     };
+                    if (!Directory.Exists(fileDirectory)) {
+                        Directory.CreateDirectory(fileDirectory);
+                    }
+                    using (var stream = new FileStream(fullPath, FileMode.Create)) {
+                        file.CopyTo(stream);
+                    }
                     await FileAttachmentService.CreateAsync(attachment);
-                    AddAttachment(file,Path.Combine(fileDirectory,fileSystemName));
                 } else {
                     return false;
                 }
@@ -30,12 +43,6 @@ namespace PsuedoMediaBackend.Services {
                 return false;
             }
             return true;
-        }
-
-        private void AddAttachment(IFormFile formFile,string fullPath) {
-            using (var stream = new FileStream(fullPath, FileMode.Create)) {
-                formFile.CopyTo(stream);
-            }
         }
     }
 }
