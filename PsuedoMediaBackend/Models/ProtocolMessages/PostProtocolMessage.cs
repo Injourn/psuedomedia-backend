@@ -8,6 +8,8 @@
         public string? Id { get; set; }
         public long Rating { get; set; }
         public int UserRating { get; set; }
+        public string? AttachmentLocation { get; set; }
+        public string? AttachmentTag { get; set; }
 
         public PostProtocolMessage() {
             Replies = new List<PostProtocolMessage>();

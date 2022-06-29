@@ -143,6 +143,12 @@ namespace PsuedoMediaBackend.Controllers {
 
         private async Task<PostProtocolMessage> PostToProtocolMessage(Post post,bool replyMessages = true) {
             Users user = await _authenticationService.UserService.GetByIdAsync(post.CreatedByUserId);
+            Attachment? attachment = await _attachmentService.GetAttachmentLocation(post.Id);
+            string? attachmentTag = null;
+            if (attachment != null) {
+                AttachmentType type = await _attachmentService.AttachmentTypeService.GetByIdAsync(attachment.AttachmentTypeId);
+                attachmentTag = type.DisplayTag;
+            }
             if(user == null) {
                 user = (await _authenticationService.UserService.GetSomeByDefinition(x => x.DisplayName == "UnknownUser")).First();
             }
@@ -155,7 +161,7 @@ namespace PsuedoMediaBackend.Controllers {
             if (_authenticationService?.ActiveUserId != null) {
                 userRating = await _postsService.UserRating(post.Id, _authenticationService.ActiveUserId);
             }
-            return new PostProtocolMessage(){
+            return new PostProtocolMessage() {
                 Message = post.PostText,
                 CreatedDate = post.DateCreated,
                 UserCreatedName = user.DisplayName,
@@ -163,7 +169,9 @@ namespace PsuedoMediaBackend.Controllers {
                 Replies = replies,
                 Id = post.Id,
                 Rating = rating,
-                UserRating = userRating
+                UserRating = userRating,
+                AttachmentLocation = attachment?.FileSystemFileName?.Replace("\\", "/"),
+                AttachmentTag = attachmentTag
             };
         }
     }

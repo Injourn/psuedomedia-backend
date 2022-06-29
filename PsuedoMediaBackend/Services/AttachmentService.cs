@@ -15,8 +15,9 @@ namespace PsuedoMediaBackend.Services {
             try {
                 if (file.Length > 0) {
                     string fileSystemName = postId + "." + file.FileName.Split(".").Last();
+                    string fileLocation = Path.Combine(directory,fileSystemName);
                     string fileDirectory = Path.Combine(Directory.GetCurrentDirectory(), directory);
-                    string fullPath = Path.Combine(fileDirectory, fileSystemName);
+                    string fullPath = Path.Combine(Directory.GetCurrentDirectory(),fileLocation);
                     string contentType;
                     new FileExtensionContentTypeProvider().TryGetContentType(file.FileName, out contentType);
                     AttachmentType attachmentType = await AttachmentTypeService.GetOneByDefinition(x => x.MimeType == contentType);
@@ -27,7 +28,7 @@ namespace PsuedoMediaBackend.Services {
                         AttachmentTypeId = attachmentType.Id,
                         PostId = postId,
                         FileName = file.FileName,
-                        FileSystemFileName = fileSystemName
+                        FileSystemFileName = fileLocation
                     };
                     if (!Directory.Exists(fileDirectory)) {
                         Directory.CreateDirectory(fileDirectory);
@@ -43,6 +44,11 @@ namespace PsuedoMediaBackend.Services {
                 return false;
             }
             return true;
+        }
+
+        public async Task<Attachment?> GetAttachmentLocation(string postId) {
+            Attachment? attachment = await FileAttachmentService.GetOneByDefinition(x => x.PostId == postId);
+            return attachment;
         }
     }
 }
