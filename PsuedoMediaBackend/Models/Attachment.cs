@@ -3,7 +3,6 @@ using System.Net.Mime;
 
 namespace PsuedoMediaBackend.Models {
     public class Attachment : FadingEntity {
-        [BsonId]
         [BsonRepresentation(MongoDB.Bson.BsonType.ObjectId)]
         public string? AttachmentTypeId { get; set; }
 
@@ -11,5 +10,6 @@ namespace PsuedoMediaBackend.Models {
         public string? PostId { get; set; }
 
         public string? FileName { get; set; }
+        public string? FileSystemFileName { get; set; }
     }
 }

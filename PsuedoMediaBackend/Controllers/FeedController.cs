@@ -13,12 +13,16 @@ namespace PsuedoMediaBackend.Controllers {
         readonly PostsService _postsService;
         readonly AuthenticationService _authenticationService;
         readonly AccountService _accountService;
+        readonly AttachmentService _attachmentService;
 
-        public FeedController(AuthenticationService authenticationService, PostsService postsService, AccountService accountService) {            
+        const string fileDirectory = "PostMedia";
+
+        public FeedController(AuthenticationService authenticationService, PostsService postsService, AccountService accountService,AttachmentService attachmentService) {            
             _authenticationService = authenticationService;
             _postsService = postsService;
             _postsService.PostService.UserId = _authenticationService.ActiveUserId;
-            _accountService = accountService;
+            _accountService = accountService;            
+            _attachmentService = attachmentService;
         }
 
         [HttpGet, PsuedoMediaAuthentication, AllowAnonymous]
@@ -66,8 +70,12 @@ namespace PsuedoMediaBackend.Controllers {
                 ParentPostId = body.ParentPostId,
             };
             await _postsService.PostService.CreateAsync(post);
+            PostProtocolResponseMessage response = new PostProtocolResponseMessage {
+                Id = post.Id,
+                Message = body.PostText
+            };
 
-            return NoContent();
+            return Ok(response);
         }
 
         [HttpPut("{id:length(24)}")]
@@ -117,7 +125,21 @@ namespace PsuedoMediaBackend.Controllers {
                 UserRating = await _postsService.UserRating(postId, _authenticationService.ActiveUserId)
             };
             return Ok(response);
-        }        
+        }
+
+        [HttpPost("uploadAttachment"), PsuedoMediaAuthentication]
+        public async Task<ActionResult> UploadAttachment(IFormFile file,string postId) {
+            Post post = await _postsService.PostService.GetByIdAsync(postId);
+            if (post == null || post.CreatedByUserId != _authenticationService.ActiveUserId) {
+                return BadRequest();
+            }
+            if (await _attachmentService.AddAttachment(file, fileDirectory, postId)) {
+                return Ok();
+            } else {
+                return StatusCode(500,"Error: Could not upload file.");
+            }
+
+        }
 
         private async Task<PostProtocolMessage> PostToProtocolMessage(Post post,bool replyMessages = true) {
             Users user = await _authenticationService.UserService.GetByIdAsync(post.CreatedByUserId);

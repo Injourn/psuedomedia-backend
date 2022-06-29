@@ -10,12 +10,13 @@ namespace PsuedoMediaBackend.Filters {
         }
 
         public void OnActionExecuting(ActionExecutingContext context) {
-            object body = context?.ActionArguments["body"];
-            if (bods is IValidation) {
-                IValidation? validationModel = context?.ActionArguments["body"] as IValidation;
-                _authenticationService = context.HttpContext.Request.HttpContext.RequestServices.GetService<AuthenticationService>();
-                if (validationModel != null) {
-                    validationModel.Validate(_authenticationService);
+            if (context.ActionArguments.TryGetValue("body", out object body)) {
+                if (body is IValidation) {
+                    IValidation? validationModel = context?.ActionArguments["body"] as IValidation;
+                    _authenticationService = context.HttpContext.Request.HttpContext.RequestServices.GetService<AuthenticationService>();
+                    if (validationModel != null) {
+                        validationModel.Validate(_authenticationService);
+                    }
                 }
             }
         }
