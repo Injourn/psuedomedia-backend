@@ -127,23 +127,9 @@ namespace PsuedoMediaBackend.Controllers {
             return Ok(response);
         }
 
-        [HttpPost("uploadAttachment"), PsuedoMediaAuthentication]
-        public async Task<ActionResult> UploadAttachment(IFormFile file,string postId) {
-            Post post = await _postsService.PostService.GetByIdAsync(postId);
-            if (post == null || post.CreatedByUserId != _authenticationService.ActiveUserId) {
-                return BadRequest();
-            }
-            if (await _attachmentService.AddAttachment(file, fileDirectory, postId)) {
-                return Ok();
-            } else {
-                return StatusCode(500,"Error: Could not upload file.");
-            }
-
-        }
-
         private async Task<PostProtocolMessage> PostToProtocolMessage(Post post,bool replyMessages = true) {
             Users user = await _authenticationService.UserService.GetByIdAsync(post.CreatedByUserId);
-            Attachment? attachment = await _attachmentService.GetAttachmentLocation(post.Id);
+            Attachment? attachment = await _attachmentService.FileAttachmentService.GetOneByDefinition(x => x.PostId == post.Id);
             string? attachmentTag = null;
             if (attachment != null) {
                 AttachmentType type = await _attachmentService.AttachmentTypeService.GetByIdAsync(attachment.AttachmentTypeId);
@@ -170,7 +156,7 @@ namespace PsuedoMediaBackend.Controllers {
                 Id = post.Id,
                 Rating = rating,
                 UserRating = userRating,
-                AttachmentLocation = attachment?.FileSystemFileName?.Replace("\\", "/"),
+                AttachmentId = attachment?.Id,
                 AttachmentTag = attachmentTag
             };
         }

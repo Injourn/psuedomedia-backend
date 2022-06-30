@@ -11,12 +11,12 @@ namespace PsuedoMediaBackend.Services {
             FileAttachmentService = new MongoDbService<Attachment>(psuedoMediaDatabaseSettings);
             AttachmentTypeService = new MongoDbService<AttachmentType>(psuedoMediaDatabaseSettings);           
         }
-        public async Task<bool> AddAttachment(IFormFile file,string directory,string postId) {
+        public async Task<bool> AddAttachment(IFormFile file,string postId) {
             try {
                 if (file.Length > 0) {
                     string fileSystemName = postId + "." + file.FileName.Split(".").Last();
-                    string fileLocation = Path.Combine(directory,fileSystemName);
-                    string fileDirectory = Path.Combine(Directory.GetCurrentDirectory(), directory);
+                    string fileLocation = Path.Combine("Attachments",fileSystemName);
+                    string fileDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Attachments");
                     string fullPath = Path.Combine(Directory.GetCurrentDirectory(),fileLocation);
                     string contentType;
                     new FileExtensionContentTypeProvider().TryGetContentType(file.FileName, out contentType);
@@ -44,11 +44,6 @@ namespace PsuedoMediaBackend.Services {
                 return false;
             }
             return true;
-        }
-
-        public async Task<Attachment?> GetAttachmentLocation(string postId) {
-            Attachment? attachment = await FileAttachmentService.GetOneByDefinition(x => x.PostId == postId);
-            return attachment;
         }
     }
 }
