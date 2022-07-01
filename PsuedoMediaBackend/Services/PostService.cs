@@ -15,12 +15,15 @@ namespace PsuedoMediaBackend.Services {
         }
 
         public async Task RatePost(string postId,string userId,int value) {
+            PostRating currentRating = await PostRatingService.GetOneByDefinition(x => x.UserId == userId && postId == x.PostId);
             await PostRatingService.DeleteByDefinitionAsync(x => x.UserId == userId && postId == x.PostId);
-            await PostRatingService.CreateAsync(new PostRating() {
-                PostId = postId,
-                UserId = userId,
-                Value = value
-            });
+            if (currentRating == null || currentRating.Value != value) {
+                await PostRatingService.CreateAsync(new PostRating() {
+                    PostId = postId,
+                    UserId = userId,
+                    Value = value
+                });
+            }
         }
 
         public async Task<long> PostRatings(string PostId) {
