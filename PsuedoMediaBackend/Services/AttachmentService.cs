@@ -21,7 +21,7 @@ namespace PsuedoMediaBackend.Services {
                     string contentType;
                     new FileExtensionContentTypeProvider().TryGetContentType(file.FileName, out contentType);
                     AttachmentType attachmentType = await AttachmentTypeService.GetOneByDefinition(x => x.MimeType == contentType);
-                    if (attachmentType == null) {
+                    if (attachmentType == null || attachmentType.DisplayTag == "Video") {
                         return false;
                     }
                     Attachment attachment = new Attachment {

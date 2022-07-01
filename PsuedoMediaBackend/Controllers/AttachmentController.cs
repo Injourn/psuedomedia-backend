@@ -22,7 +22,7 @@ namespace PsuedoMediaBackend.Controllers {
             Attachment? attachment = await _attachmentService.FileAttachmentService.GetByIdAsync(id);
             if (attachment != null) {
                 AttachmentType? type = await _attachmentService.AttachmentTypeService.GetByIdAsync(attachment.AttachmentTypeId);
-                if (type == null) {
+                if (type != null) {
                     string attachmentLocation = Path.Combine(Directory.GetCurrentDirectory(), attachment.FileSystemFileName);
                     Byte[] b = System.IO.File.ReadAllBytes(attachmentLocation);   // You can use your own method over here.         
                     return File(b, type.MimeType);
