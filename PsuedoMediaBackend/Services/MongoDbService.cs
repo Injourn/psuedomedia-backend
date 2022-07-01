@@ -34,6 +34,9 @@ namespace PsuedoMediaBackend.Services {
         public async Task<List<T>> GetSomeByDefinition(System.Linq.Expressions.Expression<Func<T,bool>> filter,int offset = 0) =>
             await _mongoCollection.Find(filter).Limit(10).Skip(offset).ToListAsync();
 
+        public async Task<List<T>> GetSomeByDefinition(System.Linq.Expressions.Expression<Func<T, bool>> filter, System.Linq.Expressions.Expression<Func<T, object>> sort, int offset = 0) =>
+            await _mongoCollection.Find(filter).SortByDescending(sort).Limit(10).Skip(offset).ToListAsync();
+
         public async Task<List<T>> GetAllByDefinition(System.Linq.Expressions.Expression<Func<T, bool>> filter) =>
             await _mongoCollection.Find(filter).ToListAsync();
 

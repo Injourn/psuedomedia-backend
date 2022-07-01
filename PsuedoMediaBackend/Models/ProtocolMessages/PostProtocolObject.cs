@@ -1,6 +1,6 @@
 ﻿namespace PsuedoMediaBackend.Models.ProtocolMessages {
-    public class PostProtocolMessage {
-        public List<PostProtocolMessage> Replies { get; set; }
+    public class PostProtocolObject {
+        public List<PostProtocolObject> Replies { get; set; }
         public string? Message { get; set; }
         public string? UserCreatedName { get; set; }
         public string? UserCreatedById { get; set; }
@@ -11,8 +11,10 @@
         public string? AttachmentId { get; set; }
         public string? AttachmentTag { get; set; }
 
-        public PostProtocolMessage() {
-            Replies = new List<PostProtocolMessage>();
+        public long ReplyCount { get; set; }
+
+        public PostProtocolObject() {
+            Replies = new List<PostProtocolObject>();
         }
     }
 }

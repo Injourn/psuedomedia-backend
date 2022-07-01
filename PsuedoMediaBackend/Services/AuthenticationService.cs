@@ -40,7 +40,7 @@ namespace PsuedoMediaBackend.Services {
         }
 
         public async Task<Tuple<OAuthToken,RefreshToken>>? RefreshToken(string refreshToken) {
-            RefreshToken? foundRefreshToken = (await RefreshTokenService.GetSomeByDefinition(x => x.Token == refreshToken && x.RemoveDate > DateTime.Now)).FirstOrDefault();
+            RefreshToken? foundRefreshToken = (await RefreshTokenService.GetAllByDefinition(x => x.Token == refreshToken && x.RemoveDate > DateTime.Now)).FirstOrDefault();
             if (foundRefreshToken == null) {
                 return null;
             }

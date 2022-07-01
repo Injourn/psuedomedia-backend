@@ -15,7 +15,7 @@ namespace PsuedoMediaBackend.Services {
             RelationshipType friendType = await RelationshipTypeService.GetByCode(RelationshipTypeEnum.FRIEND.ToString());
             RelationshipType followType = await RelationshipTypeService.GetByCode(RelationshipTypeEnum.FOLLOW.ToString());
 
-            return await FriendsFollowersService.GetSomeByDefinition(x => x.UserAId == userId && (x.RelationShipTypeId == friendType.Id || x.RelationShipTypeId == followType.Id));
+            return await FriendsFollowersService.GetAllByDefinition(x => x.UserAId == userId && (x.RelationShipTypeId == friendType.Id || x.RelationShipTypeId == followType.Id));
         }
     }
 }

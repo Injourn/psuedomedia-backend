@@ -1,6 +1,6 @@
 ﻿namespace PsuedoMediaBackend.Models.ProtocolMessages {
     public class PostProtocolResponseMessage {
-        public string Id { get; set; }
-        public string Message { get; set; }        
+        public List<PostProtocolObject> Statuses { get; set; }
+        public long Count { get; set; }
     }
 }

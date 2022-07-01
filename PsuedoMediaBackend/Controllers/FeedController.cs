@@ -15,8 +15,6 @@ namespace PsuedoMediaBackend.Controllers {
         readonly AccountService _accountService;
         readonly AttachmentService _attachmentService;
 
-        const string fileDirectory = "PostMedia";
-
         public FeedController(AuthenticationService authenticationService, PostsService postsService, AccountService accountService,AttachmentService attachmentService) {            
             _authenticationService = authenticationService;
             _postsService = postsService;
@@ -26,10 +24,16 @@ namespace PsuedoMediaBackend.Controllers {
         }
 
         [HttpGet, PsuedoMediaAuthentication, AllowAnonymous]
-        public async Task<List<PostProtocolMessage>> Get() {
+        public async Task<PostProtocolResponseMessage> Get(int? page) {
             PostType postType = await _postsService.PostTypeService.GetByCode(PostTypeEnum.POST.ToString());
-            List<PostProtocolMessage> posts = (await _postsService.PostService.GetSomeByDefinition(x => x.PostTypeId == postType.Id)).Select(x => PostToProtocolMessage(x).Result).OrderByDescending(x => x.CreatedDate).ToList();
-            return posts;
+            List<PostProtocolObject> posts = (await _postsService.PostService.GetSomeByDefinition(x => x.PostTypeId == postType.Id,x => x.DateCreated,(page ?? 0) * 10))
+                .Select(x => PostToProtocolMessage(x).Result)
+                .ToList();
+            long count = _postsService.PostService.GetCountByDefinition(x => x.PostTypeId == postType.Id);
+            return new PostProtocolResponseMessage() {
+                Statuses = posts,
+                Count = count
+            };
         }
 
         [HttpGet("{id:length(24)}")]
@@ -43,20 +47,43 @@ namespace PsuedoMediaBackend.Controllers {
             return post;
         }
         [HttpGet("getUserPosts/{id:length(24)}")]
-        public async Task<ActionResult> GetUserPosts(string id) {
-            List<Post> posts = await _postsService.PostService.GetSomeByDefinition(x => x.CreatedByUserId == id);
-            return Ok(posts.OrderByDescending(x => x.DateCreated).Select(x => PostToProtocolMessage(x).Result));
+        public async Task<ActionResult> GetUserPosts(string id, int? page) {
+            PostType postType = await _postsService.PostTypeService.GetByCode(PostTypeEnum.POST.ToString());
+            List<Post> posts = await _postsService.PostService.GetSomeByDefinition(x => 
+                x.CreatedByUserId == id &&
+                    x.PostTypeId == postType.Id,
+                x => x.DateCreated,
+                (page ?? 0) * 10);
+            long count = _postsService.PostService.GetCountByDefinition(x => x.CreatedByUserId == id && x.PostTypeId == postType.Id);
+            List<PostProtocolObject> response = posts.OrderByDescending(x => x.DateCreated).Select(x => PostToProtocolMessage(x).Result).ToList();
+
+            return Ok(new PostProtocolResponseMessage() {
+                Statuses = response,
+                Count = count
+            });
         }
 
         [HttpGet("getFriendsPosts"),PsuedoMediaAuthentication]
-        public async Task<ActionResult> GetFriendsPosts() {
+        public async Task<ActionResult> GetFriendsPosts(int? page) {
+            PostType postType = await _postsService.PostTypeService.GetByCode(PostTypeEnum.POST.ToString());
             List<FriendsFollowers> friendsFollowers = await _accountService.GetAllFriendsAndFollowing(_authenticationService.ActiveUserId);
             HashSet<string> userIds = new HashSet<string>();
             friendsFollowers.ForEach(x => {
                 userIds.Add(x.UserBId);
             });
-            List<Post> posts = await _postsService.PostService.GetSomeByDefinition(x => userIds.Contains(x.CreatedByUserId));
-            return Ok(posts.OrderByDescending(x => x.DateCreated).Select(x => PostToProtocolMessage(x).Result));
+            List<Post> posts = await _postsService.PostService.GetSomeByDefinition(x => 
+                userIds.Contains(x.CreatedByUserId) &&
+                    x.PostTypeId == postType.Id,
+                x => x.DateCreated,
+                (page ?? 0) * 10);
+
+            long count = _postsService.PostService.GetCountByDefinition(x => userIds.Contains(x.CreatedByUserId) && x.PostTypeId == postType.Id);
+            List<PostProtocolObject> response = posts.OrderByDescending(x => x.DateCreated).Select(x => PostToProtocolMessage(x).Result).ToList();
+
+            return Ok(new PostProtocolResponseMessage() {
+                Statuses = response,
+                Count = count
+            });
         }
 
         [HttpPost]
@@ -70,7 +97,7 @@ namespace PsuedoMediaBackend.Controllers {
                 ParentPostId = body.ParentPostId,
             };
             await _postsService.PostService.CreateAsync(post);
-            PostProtocolResponseMessage response = new PostProtocolResponseMessage {
+            PostCreateProtocolResponseMessage response = new PostCreateProtocolResponseMessage {
                 Id = post.Id,
                 Message = body.PostText
             };
@@ -127,7 +154,7 @@ namespace PsuedoMediaBackend.Controllers {
             return Ok(response);
         }
 
-        private async Task<PostProtocolMessage> PostToProtocolMessage(Post post,bool replyMessages = true) {
+        private async Task<PostProtocolObject> PostToProtocolMessage(Post post,bool replyMessages = true) {
             Users user = await _authenticationService.UserService.GetByIdAsync(post.CreatedByUserId);
             Attachment? attachment = await _attachmentService.FileAttachmentService.GetOneByDefinition(x => x.PostId == post.Id);
             string? attachmentTag = null;
@@ -138,7 +165,7 @@ namespace PsuedoMediaBackend.Controllers {
             if(user == null) {
                 user = (await _authenticationService.UserService.GetSomeByDefinition(x => x.DisplayName == "UnknownUser")).First();
             }
-            List<PostProtocolMessage> replies = new List<PostProtocolMessage>();
+            List<PostProtocolObject> replies = new List<PostProtocolObject>();
             if (replyMessages) {
                 replies = (await _postsService.PostService.GetSomeByDefinition(x => x.ParentPostId == post.Id)).Select(x => PostToProtocolMessage(x, false).Result).ToList();
             }
@@ -147,7 +174,7 @@ namespace PsuedoMediaBackend.Controllers {
             if (_authenticationService?.ActiveUserId != null) {
                 userRating = await _postsService.UserRating(post.Id, _authenticationService.ActiveUserId);
             }
-            return new PostProtocolMessage() {
+            return new PostProtocolObject() {
                 Message = post.PostText,
                 CreatedDate = post.DateCreated,
                 UserCreatedName = user.DisplayName,

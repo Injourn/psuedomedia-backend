@@ -19,6 +19,9 @@ namespace PsuedoMediaBackend.Filters {
             AuthenticationHeaderValue authorization;
             bool hasAllowAnonymous = context.ActionDescriptor.EndpointMetadata
                                  .Any(em => em.GetType() == typeof(AllowAnonymousAttribute));
+            if (hasAllowAnonymous) {
+                return;
+            }
             if (!AuthenticationHeaderValue.TryParse(request.Headers.Authorization, out authorization)) {
                 context.Result = new UnauthorizedObjectResult("Bad Request");
                 return;
@@ -35,7 +38,7 @@ namespace PsuedoMediaBackend.Filters {
             request.Headers.TryGetValue("pm-refreshToken", out StringValues refreshTokenString);
             string? refreshToken = refreshTokenString; 
             
-            if(!await AuthenticateAsync(context,authToken, refreshToken) && !hasAllowAnonymous) {
+            if(!await AuthenticateAsync(context,authToken, refreshToken)) {
                 context.Result = new UnauthorizedObjectResult("Invalid Login");
                 return;
             }
@@ -46,7 +49,7 @@ namespace PsuedoMediaBackend.Filters {
                 return false;
             }
             //TODO: Add jwt expiration and userId
-            OAuthToken? foundToken = (await _authenticationService.OAuthService.GetSomeByDefinition(x => x.Token == authToken)).FirstOrDefault();
+            OAuthToken? foundToken = (await _authenticationService.OAuthService.GetAllByDefinition(x => x.Token == authToken)).FirstOrDefault();
             try {
                 if (foundToken != null) {
                     Users user = _authenticationService.DecodeJwtToken(foundToken.Token);
