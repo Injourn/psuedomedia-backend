@@ -11,7 +11,8 @@ namespace PsuedoMediaBackend.Services {
             FileAttachmentService = new MongoDbService<Attachment>(psuedoMediaDatabaseSettings);
             AttachmentTypeService = new MongoDbService<AttachmentType>(psuedoMediaDatabaseSettings);           
         }
-        public async Task<bool> AddAttachment(IFormFile file,string postId) {
+        public async Task<Attachment> AddAttachment(IFormFile file,string postId) {
+            Attachment attachment;
             try {
                 if (file.Length > 0) {
                     string fileSystemName = postId + "." + file.FileName.Split(".").Last();
@@ -22,9 +23,9 @@ namespace PsuedoMediaBackend.Services {
                     new FileExtensionContentTypeProvider().TryGetContentType(file.FileName, out contentType);
                     AttachmentType attachmentType = await AttachmentTypeService.GetOneByDefinition(x => x.MimeType == contentType);
                     if (attachmentType == null || attachmentType.DisplayTag == "Video") {
-                        return false;
+                        return null;
                     }
-                    Attachment attachment = new Attachment {
+                    attachment = new Attachment {
                         AttachmentTypeId = attachmentType.Id,
                         PostId = postId,
                         FileName = file.FileName,
@@ -38,12 +39,12 @@ namespace PsuedoMediaBackend.Services {
                     }
                     await FileAttachmentService.CreateAsync(attachment);
                 } else {
-                    return false;
+                    return null;
                 }
             } catch(Exception e) {
-                return false;
+                return null;
             }
-            return true;
+            return attachment;
         }
     }
 }

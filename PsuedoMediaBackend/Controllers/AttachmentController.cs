@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using PsuedoMediaBackend.Filters;
 using PsuedoMediaBackend.Models;
+using PsuedoMediaBackend.Models.ProtocolMessages;
 using PsuedoMediaBackend.Services;
 
 namespace PsuedoMediaBackend.Controllers {
@@ -42,8 +43,13 @@ namespace PsuedoMediaBackend.Controllers {
             if (post == null || post.CreatedByUserId != _authenticationService.ActiveUserId) {
                 return BadRequest();
             }
-            if (await _attachmentService.AddAttachment(file, postId)) {
-                return Ok();
+            Attachment attachment = await _attachmentService.AddAttachment(file, postId);
+            if (attachment != null) {
+                AttachmentResponseProtocolMessage response = new AttachmentResponseProtocolMessage() {
+                    AttachmentId = attachment.Id,
+                    FileName = attachment.FileName
+                };
+                return Ok(response);
             }
             else {
                 return StatusCode(500, "Error: Could not upload file.");
