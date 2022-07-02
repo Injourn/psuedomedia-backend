@@ -41,7 +41,9 @@ namespace PsuedoMediaBackend.Filters {
             string? refreshToken = refreshTokenString; 
             
             if(!await AuthenticateAsync(context,authToken, refreshToken)) {
-                context.Result = new UnauthorizedObjectResult("Invalid Login");
+                if (!hasAllowAnonymous) {
+                    context.Result = new UnauthorizedObjectResult("Invalid Login");
+                }
                 return;
             }
         }
