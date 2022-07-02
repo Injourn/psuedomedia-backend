@@ -46,7 +46,7 @@ builder.Services.AddSwaggerGen( opt => {
 
 builder.Services.Configure<PsuedoMediaDatabaseSettings>(
     builder.Configuration.GetSection("PsuedoMediaDatabase"));
-builder.Services.AddSingleton<PsuedoMediaBackend.Services.AuthenticationService>();
+builder.Services.AddScoped<PsuedoMediaBackend.Services.AuthenticationService>();
 builder.Services.AddSingleton<PsuedoMediaBackend.Services.AccountService>();
 builder.Services.AddSingleton<PsuedoMediaBackend.Services.PostsService>();
 builder.Services.AddSingleton<PsuedoMediaBackend.Services.AttachmentService>();

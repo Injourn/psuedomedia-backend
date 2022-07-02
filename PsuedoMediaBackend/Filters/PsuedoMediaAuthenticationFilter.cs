@@ -19,16 +19,18 @@ namespace PsuedoMediaBackend.Filters {
             AuthenticationHeaderValue authorization;
             bool hasAllowAnonymous = context.ActionDescriptor.EndpointMetadata
                                  .Any(em => em.GetType() == typeof(AllowAnonymousAttribute));
-            if (hasAllowAnonymous) {
-                return;
-            }
+            
             if (!AuthenticationHeaderValue.TryParse(request.Headers.Authorization, out authorization)) {
-                context.Result = new UnauthorizedObjectResult("Bad Request");
+                if (!hasAllowAnonymous) {
+                    context.Result = new UnauthorizedObjectResult("Bad Request");
+                }
                 return;
             }
 
             if (authorization.Scheme != "Bearer") {
-                context.Result = new UnauthorizedObjectResult("Bad Request");
+                if (!hasAllowAnonymous) {
+                    context.Result = new UnauthorizedObjectResult("Bad Request");
+                }
                 return;
             }
 
